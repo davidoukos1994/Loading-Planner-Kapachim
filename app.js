@@ -1,12 +1,14 @@
 const KEY='loadingPlanner.v1';
-const WEEK_SECTIONS=[
-  {label:'ΥΠΟΧΡΕΩΣΕΙΣ ΝΑΥΠΛΙΟ',rows:1,cls:'redtext'},
-  {label:'ΦΟΡΤΩΣΕΙΣ / ΠΕΛΑΤΕΣ',rows:1},
-  {label:'ΣΥΝΟΛΟ ΥΠΟΧΡΕΩΣΕΩΝ',rows:1,compact:true},
-  {label:'ΔΕΞΑΜΕΝΕΣ / ΠΡΟΪΟΝ',rows:1,compact:true},
-  {label:'ΛΟΙΠΕΣ ΦΟΡΤΩΣΕΙΣ',rows:1,compact:true},
-  {label:'ΠΕΤΡΕΛΑΙΑ / ΛΟΙΠΑ',rows:1,compact:true,totals:true}
+const WEEK_PRODUCT_SECTIONS=[
+  {key:'hypochlorite',label:'ΥΠΟΧΛΩΡΙΩΔΕΣ ΝΑΤΡΙΟ',rows:15,cls:'product-hypochlorite'},
+  {key:'hydrochloric',label:'ΥΔΡΟΧΛΩΡΙΚΟ ΟΞΥ',rows:2,cls:'product-hydrochloric'},
+  {key:'brine',label:'ΑΛΜΗ',rows:2,cls:'product-brine'},
+  {key:'salt',label:'ΑΛΑΤΙ',rows:2,cls:'product-salt'}
 ];
+const WEEK_ROW_LAYOUT=WEEK_PRODUCT_SECTIONS.flatMap(section=>[
+  {type:'header',section},
+  ...Array.from({length:section.rows},(_,index)=>({type:'entry',section,index}))
+]);
 const DAILY_HEADERS=['#','ΠΡΟΓΡΑΜΜΑ','ΗΜΕΡΟΜΗΝΙΑ','ΒΑΡΔΙΑ / ΔΕΞΑΜΕΝΗ','ΠΕΛΑΤΗΣ','ΠΡΟΪΟΝ / ΔΕΞΑΜΕΝΗ','ΠΟΣΟΤΗΤΑ','ΩΡΑ / ΒΑΡΔΙΑ','ΜΕΤΑΦΟΡΕΑΣ','ΠΑΡΑΤΗΡΗΣΗ'];
 let state=loadState(); let selectedInputs=[]; let ocrTarget='weekly';
 function blankDaily(){return Array.from({length:16},()=>Array(DAILY_HEADERS.length-1).fill(''));}
@@ -21,11 +23,43 @@ function weekKey(){return state.weekStart||mondayOfToday()}
 function dayKey(){return state.dailyDate||iso(new Date())}
 function makeInput(value,oninput,classes=''){const ta=document.createElement('textarea');ta.className='cell-input '+classes;ta.value=value||'';ta.setAttribute('list','autocomplete');ta.autocomplete='off';ta.addEventListener('input',e=>{oninput(e.target.value);autosave();showSuggestions(e.target)});ta.addEventListener('focus',()=>selectCell(ta));ta.addEventListener('click',()=>selectCell(ta));return ta}
 function selectCell(el){document.querySelectorAll('.selected-cell').forEach(x=>x.classList.remove('selected-cell'));el.parentElement.classList.add('selected-cell');selectedInputs=[el]}
-function renderWeekly(){const start=new Date((state.weekStart||mondayOfToday())+'T12:00:00');state.weekStart=iso(start);document.getElementById('weekStart').value=state.weekStart;const wk=weekKey();if(!state.weekly[wk])state.weekly[wk]=WEEK_SECTIONS.map(()=>Array(7).fill(''));
- const days=document.getElementById('weeklyDays');days.innerHTML='<th class="row-label">ΗΜΕΡΑ</th>';const names=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];
+function blankWeekly(){return WEEK_PRODUCT_SECTIONS.reduce((out,section)=>{out[section.key]=Array.from({length:section.rows},()=>Array(7).fill(''));return out},{});}
+function normalizeWeeklyWeek(value){
+ if(!value||Array.isArray(value))return blankWeekly();
+ const result=blankWeekly();
+ WEEK_PRODUCT_SECTIONS.forEach(section=>{
+   const source=Array.isArray(value[section.key])?value[section.key]:[];
+   for(let r=0;r<section.rows;r++)for(let c=0;c<7;c++)result[section.key][r][c]=source[r]?.[c]||'';
+ });
+ return result;
+}
+function renderWeekly(){
+ const start=new Date((state.weekStart||mondayOfToday())+'T12:00:00');state.weekStart=iso(start);document.getElementById('weekStart').value=state.weekStart;
+ const wk=weekKey();state.weekly[wk]=normalizeWeeklyWeek(state.weekly[wk]);
+ const days=document.getElementById('weeklyDays');days.innerHTML='<th class="row-label">ΠΡΟΪΟΝ / ΘΕΣΗ</th>';
+ const names=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];
  const end=new Date(start);end.setDate(end.getDate()+6);document.getElementById('weekRange').textContent=fmt(start)+' – '+fmt(end);
  names.forEach((n,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);const th=document.createElement('th');th.innerHTML=`${fmt(d)}<br><strong>${n}</strong>`;days.appendChild(th)});
- const body=document.getElementById('weeklyBody');body.innerHTML='';WEEK_SECTIONS.forEach((sec,r)=>{const tr=document.createElement('tr');if(sec.compact)tr.classList.add('compact');if(sec.totals)tr.classList.add('totals');const th=document.createElement('th');th.className='row-label';th.textContent=sec.label;tr.appendChild(th);for(let c=0;c<7;c++){const td=document.createElement('td');td.appendChild(makeInput(state.weekly[wk][r][c],v=>state.weekly[wk][r][c]=v,sec.cls||''));tr.appendChild(td)}body.appendChild(tr)});updateAutocomplete();}
+ const body=document.getElementById('weeklyBody');body.innerHTML='';
+ WEEK_ROW_LAYOUT.forEach(item=>{
+   const tr=document.createElement('tr');
+   if(item.type==='header'){
+     tr.className='weekly-product-header '+item.section.cls;
+     const th=document.createElement('th');th.className='row-label';th.textContent=item.section.label;tr.appendChild(th);
+     for(let c=0;c<7;c++){const td=document.createElement('td');td.textContent=item.section.label;tr.appendChild(td)}
+   }else{
+     tr.className='weekly-entry-row '+item.section.cls;
+     const th=document.createElement('th');th.className='row-label entry-number';th.textContent=(item.index+1);tr.appendChild(th);
+     for(let c=0;c<7;c++){
+       const td=document.createElement('td');
+       td.appendChild(makeInput(state.weekly[wk][item.section.key][item.index][c],v=>state.weekly[wk][item.section.key][item.index][c]=v));
+       tr.appendChild(td);
+     }
+   }
+   body.appendChild(tr);
+ });
+ updateAutocomplete();
+}
 function renderDaily(){state.dailyDate=state.dailyDate||iso(new Date());document.getElementById('dailyDate').value=state.dailyDate;const dk=dayKey();if(!state.daily[dk])state.daily[dk]=blankDaily();const head=document.getElementById('dailyHead');head.innerHTML='';DAILY_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('dailyBody');body.innerHTML='';state.daily[dk].forEach((row,ri)=>{const tr=document.createElement('tr');const num=document.createElement('th');num.textContent=ri+1;tr.appendChild(num);row.forEach((val,ci)=>{const td=document.createElement('td');const cls=(ci===6&&/24|25/.test(val))?'yellow':'';td.appendChild(makeInput(val,v=>state.daily[dk][ri][ci]=v,cls));tr.appendChild(td)});body.appendChild(tr)});updateAutocomplete();}
 function updateAutocomplete(){const all=Object.values(state.lists).flat().filter(Boolean);const dl=document.getElementById('autocomplete');dl.innerHTML='';[...new Set(all.map(x=>x.trim()).filter(Boolean))].sort().forEach(x=>{const o=document.createElement('option');o.value=x;dl.appendChild(o)})}
 function showSuggestions(el){const q=el.value.trim().toUpperCase();if(q.length<2)return;const all=Object.values(state.lists).flat();const hit=all.find(x=>x.toUpperCase().startsWith(q)||distance(x.toUpperCase(),q)<=1);if(hit&&hit.toUpperCase()!==q)el.title='Πρόταση: '+hit}
