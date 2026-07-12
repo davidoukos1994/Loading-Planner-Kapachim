@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1f3b5b" />
+  <title>Πρόγραμμα Φορτώσεων</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>Πρόγραμμα Φορτώσεων</h1>
+    <p>Προσωπική εφαρμογή — οι φωτογραφίες επεξεργάζονται μόνο στη συσκευή.</p>
+  </div>
+  <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
+</header>
+
+<nav class="tabs" aria-label="Κύρια πλοήγηση">
+  <button class="tab active" data-view="weekly">Εβδομαδιαίο</button>
+  <button class="tab" data-view="daily">Καθημερινό</button>
+  <button class="tab" data-view="lists">Λίστες / Autocomplete</button>
+  <button class="tab" data-view="backup">Αντίγραφο ασφαλείας</button>
+</nav>
+
+<main>
+  <section id="weekly" class="view active">
+    <div class="toolbar">
+      <label>Εβδομάδα από <input type="date" id="weekStart" /></label>
+      <button id="weeklyPhotoBtn">📷 Ανάγνωση φωτογραφίας</button>
+      <input type="file" id="weeklyPhoto" accept="image/*" capture="environment" hidden />
+      <button id="clearWeekly" class="danger">Καθαρισμός εβδομάδας</button>
+      <button onclick="window.print()">Εκτύπωση</button>
+    </div>
+    <div class="sheet-wrap">
+      <table class="excel weekly-sheet" id="weeklyTable">
+        <thead>
+          <tr><th class="row-label">ΕΒΔΟΜΑΔΑ</th><th colspan="7" id="weekRange">—</th></tr>
+          <tr id="weeklyDays"><th class="row-label">ΗΜΕΡΑ</th></tr>
+        </thead>
+        <tbody id="weeklyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="daily" class="view">
+    <div class="toolbar">
+      <label>Ημερομηνία <input type="date" id="dailyDate" /></label>
+      <button id="dailyPhotoBtn">📷 Ανάγνωση φωτογραφίας</button>
+      <input type="file" id="dailyPhoto" accept="image/*" capture="environment" hidden />
+      <button id="addDailyRow">＋ Νέα γραμμή</button>
+      <button id="clearDaily" class="danger">Καθαρισμός ημέρας</button>
+      <button onclick="window.print()">Εκτύπωση</button>
+    </div>
+    <div class="sheet-wrap">
+      <table class="excel daily-sheet" id="dailyTable">
+        <thead><tr id="dailyHead"></tr></thead>
+        <tbody id="dailyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="lists" class="view">
+    <div class="cards">
+      <article class="card">
+        <h2>Πελάτες / εταιρείες</h2>
+        <textarea id="clientsList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea>
+      </article>
+      <article class="card">
+        <h2>Δεξαμενές / προϊόντα</h2>
+        <textarea id="tanksList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea>
+      </article>
+      <article class="card">
+        <h2>Μεταφορείς</h2>
+        <textarea id="carriersList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea>
+      </article>
+      <article class="card">
+        <h2>Άλλες συχνές ονομασίες</h2>
+        <textarea id="otherList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea>
+      </article>
+    </div>
+    <div class="toolbar"><button id="saveLists">Αποθήκευση λιστών</button></div>
+    <p class="hint">Οι προτάσεις εμφανίζονται όταν γράφεις μέσα σε οποιοδήποτε κελί.</p>
+  </section>
+
+  <section id="backup" class="view">
+    <div class="card narrow">
+      <h2>Αντίγραφο ασφαλείας δεδομένων</h2>
+      <p>Τα προγράμματα αποθηκεύονται τοπικά στον browser αυτής της συσκευής.</p>
+      <div class="stack">
+        <button id="exportData">Λήψη αντιγράφου (.json)</button>
+        <label class="file-label">Επαναφορά από αρχείο<input type="file" id="importData" accept="application/json" hidden /></label>
+        <button id="eraseAll" class="danger">Διαγραφή όλων των δεδομένων</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="ocrDialog">
+  <form method="dialog" class="ocr-panel">
+    <div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div>
+    <p>Η εικόνα δεν αποθηκεύεται. Η αναγνώριση γίνεται μέσα στον browser.</p>
+    <div class="progress"><div id="ocrBar"></div></div>
+    <div id="ocrMessage">Προετοιμασία…</div>
+    <textarea id="ocrText" rows="16" placeholder="Το αναγνωρισμένο κείμενο θα εμφανιστεί εδώ"></textarea>
+    <div class="toolbar">
+      <button type="button" id="insertOcrLines">Πέρασμα γραμμών στα επιλεγμένα κελιά</button>
+      <button type="button" id="copyOcr">Αντιγραφή κειμένου</button>
+      <button value="cancel">Κλείσιμο</button>
+    </div>
+    <p class="hint">Για μεγαλύτερη ακρίβεια: φωτογράφισε ίσια, ολόκληρο τον πίνακα, χωρίς αντανάκλαση. Έλεγξε τα κελιά πριν τα κρατήσεις.</p>
+  </form>
+</dialog>
+
+<datalist id="autocomplete"></datalist>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
