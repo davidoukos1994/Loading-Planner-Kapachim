@@ -30,13 +30,16 @@ function matches(q,key,all=false){q=upper(q).trim();const xs=suggestions(key);if
 function selectCell(el){document.querySelectorAll('.selected-cell').forEach(x=>x.classList.remove('selected-cell'));el.closest('td')?.classList.add('selected-cell');selectedInputs=[el]}
 function makeInput(value,onChange,classes='',listKey=null,withPicker=false){
  const wrap=document.createElement('div');wrap.className='autocomplete-wrap'+(withPicker?'':' no-picker');
- const input=document.createElement('input');input.type='text';input.className='cell-input '+classes;input.dataset.listKey=listKey||'';input.value=upper(value);input.autocomplete='off';input.autocapitalize='characters';input.spellcheck=false;
+ const isClient=listKey==='clients';
+ const input=document.createElement(isClient?'textarea':'input');
+ if(!isClient)input.type='text';else{input.rows=2;input.wrap='soft';input.setAttribute('aria-label','ΟΝΟΜΑ ΠΕΛΑΤΗ')}
+ input.className='cell-input '+classes+(isClient?' client-name-input':'');input.dataset.listKey=listKey||'';input.value=upper(value);input.autocomplete='off';input.autocapitalize='characters';input.spellcheck=false;
  const preview=document.createElement('div');preview.className='inline-preview';const menu=document.createElement('div');menu.className='inline-suggestions';
  function close(){menu.classList.remove('open');menu.innerHTML='';preview.textContent=''}
  function open(showAll=false){if(!listKey)return;const hits=matches(input.value,listKey,showAll);menu.innerHTML='';preview.textContent=hits[0]&&upper(input.value)!==hits[0]?hits[0]:'';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.onpointerdown=e=>{e.preventDefault();input.value=hit;onChange(hit);save();close();input.focus()};menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
  input.addEventListener('input',()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();open(false)});
  input.addEventListener('focus',()=>{selectCell(input);open(false)}); input.addEventListener('click',()=>open(false));
- input.addEventListener('keydown',e=>{if(e.key==='Tab'&&preview.textContent){e.preventDefault();input.value=preview.textContent;onChange(input.value);save();close()}else if(e.key==='Escape')close()});
+ input.addEventListener('keydown',e=>{if((e.key==='Tab'||e.key==='Enter')&&preview.textContent){e.preventDefault();input.value=preview.textContent;onChange(input.value);save();close()}else if(e.key==='Enter'&&isClient){e.preventDefault()}else if(e.key==='Escape')close()});
  input.addEventListener('blur',()=>setTimeout(close,180));wrap.append(input,preview);
  if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.onpointerdown=e=>e.preventDefault();p.onclick=()=>{input.focus();open(true)};wrap.appendChild(p)}
  wrap.appendChild(menu);return {wrap,input}
