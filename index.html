@@ -9,11 +9,11 @@
   <meta http-equiv="Expires" content="0" />
   <title>Πρόγραμμα Φορτώσεων</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=1.0.0" />
+  <link rel="stylesheet" href="styles.css?v=1.1.0" />
 </head>
 <body>
 <header class="topbar">
-  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v1.0</small></h1><p>Προσωπική εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v1.1</small></h1><p>Προσωπική εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
   <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
 </header>
 <nav class="tabs" aria-label="Κύρια πλοήγηση">
@@ -69,5 +69,5 @@
   <section id="backup" class="view"><div class="card narrow"><h2>Αντίγραφο ασφαλείας δεδομένων</h2><p>Τα προγράμματα αποθηκεύονται τοπικά στον browser αυτής της συσκευής.</p><div class="stack"><button id="exportData">Λήψη αντιγράφου (.json)</button><label class="file-label">Επαναφορά από αρχείο<input type="file" id="importData" accept="application/json" hidden /></label><button id="eraseAll" class="danger">Διαγραφή όλων των δεδομένων</button></div></div></section>
 </main>
 <dialog id="ocrDialog"><form method="dialog" class="ocr-panel"><div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div><p>Η εικόνα δεν αποθηκεύεται. Η εφαρμογή αναζητά μόνο ονόματα που υπάρχουν στη λίστα πελατών. Στο καθημερινό συμπληρώνει αποκλειστικά τη στήλη ΠΕΛΑΤΗΣ και αφήνει όλα τα υπόλοιπα πεδία κενά.</p><div class="progress"><div id="ocrBar"></div></div><div id="ocrMessage">Προετοιμασία…</div><textarea id="ocrText" rows="16"></textarea><div class="toolbar"><button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button><button type="button" id="copyOcr">Αντιγραφή κειμένου</button><button value="cancel">Κλείσιμο</button></div></form></dialog>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=1.0.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=1.1.0"></script>
 </body></html>
