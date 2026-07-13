@@ -108,6 +108,27 @@ function makePickerButton(input,listKey='clients'){
   return button;
 }
 function selectCell(el){document.querySelectorAll('.selected-cell').forEach(x=>x.classList.remove('selected-cell'));el.closest('td')?.classList.add('selected-cell');selectedInputs=[el]}
+function weeklyTotal(){
+  const week=state.weekly[weekKey()]||blankWeekly();
+  return WEEK_PRODUCT_SECTIONS.reduce((total,section)=>total+(week[section.key]||[]).reduce((n,row)=>n+row.filter(v=>String(v||'').trim()).length,0),0);
+}
+function updateWeekTotal(){
+  const el=document.getElementById('weekTotal');
+  if(el)el.textContent='ΣΥΝΟΛΟ ΒΥΤΙΩΝ: '+weeklyTotal();
+}
+function readListTextarea(key){
+  const el=document.getElementById(key+'List');
+  if(!el)return [];
+  return [...new Set(el.value.split(/\r?\n/).map(x=>upper(x.trim())).filter(Boolean))];
+}
+function saveListsFromTextareas(showMessage=false){
+  for(const k of ['clients','tanks','carriers','other'])state.lists[k]=readListTextarea(k);
+  save();
+  const status=document.getElementById('listSaveStatus');
+  if(status){status.textContent='Αποθηκεύτηκαν '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'});setTimeout(()=>status.textContent='Αποθηκεύονται αυτόματα',1800)}
+  if(showMessage)alert('Οι λίστες αποθηκεύτηκαν με κεφαλαία.');
+}
+const autosaveLists=debounce(()=>saveListsFromTextareas(false),180);
 function renderWeekly(){
   const start=new Date((state.weekStart||mondayOfToday())+'T12:00:00');state.weekStart=iso(start);document.getElementById('weekStart').value=state.weekStart;
   const wk=weekKey();state.weekly[wk]=normalizeWeeklyWeek(state.weekly[wk]);state.weeklyDone[wk]=normalizeWeeklyDone(state.weeklyDone[wk]);
@@ -129,7 +150,7 @@ function renderWeekly(){
         const td=document.createElement('td');td.dataset.day=c;
         const wrap=document.createElement('div');wrap.className='entry-with-check';
         const listKey=item.section.key==='salt'?'salt':'clients';
-        const input=makeInput(state.weekly[wk][item.section.key][item.index][c],v=>state.weekly[wk][item.section.key][item.index][c]=v,'',listKey);
+        const input=makeInput(state.weekly[wk][item.section.key][item.index][c],v=>{state.weekly[wk][item.section.key][item.index][c]=v;updateWeekTotal()},'',listKey);
         const picker=makePickerButton(input,listKey);
         const check=document.createElement('label');check.className='done-check';check.title='Το βυτίο έφυγε';
         const cb=document.createElement('input');cb.type='checkbox';cb.checked=state.weeklyDone[wk][item.section.key][item.index][c];cb.setAttribute('aria-label','Το βυτίο έφυγε');
@@ -140,6 +161,7 @@ function renderWeekly(){
     }
     body.appendChild(tr);
   });
+  updateWeekTotal();
   applyMobileDay();
 }
 function renderDaily(){
@@ -149,7 +171,7 @@ function renderDaily(){
   state.daily[dk].forEach((row,ri)=>{const tr=document.createElement('tr');const num=document.createElement('th');num.textContent=ri+1;tr.appendChild(num);row.forEach((val,ci)=>{const td=document.createElement('td');const cls=(ci===6&&/24|25/.test(val))?'yellow':'';const listKey=ci===3?'clients':(ci===2||ci===4)?'tanks':ci===7?'carriers':'other';const wrap=document.createElement('div');wrap.className='daily-input-wrap';const input=makeInput(val,v=>state.daily[dk][ri][ci]=v,cls,listKey);wrap.append(input);if([2,3,4,7].includes(ci))wrap.append(makePickerButton(input,listKey));td.appendChild(wrap);tr.appendChild(td)});body.appendChild(tr)});
 }
 function applyMobileDay(){document.querySelectorAll('#weeklyTable [data-day]').forEach(el=>el.classList.add('mobile-visible'));}
-function initLists(){for(const k of ['clients','tanks','carriers','other'])document.getElementById(k+'List').value=(state.lists[k]||[]).map(upper).join('\n')}
+function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))];const el=document.getElementById(k+'List');if(el)el.value=state.lists[k].join('\n')}}
 function bindTabs(){document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.view).classList.add('active');hideSuggestions()})}
 async function runOcr(file){const dlg=document.getElementById('ocrDialog');dlg.showModal();const bar=document.getElementById('ocrBar'),msg=document.getElementById('ocrMessage'),txt=document.getElementById('ocrText');bar.style.width='0';txt.value='';msg.textContent='Φόρτωση μηχανής OCR…';try{const result=await Tesseract.recognize(file,'ell+eng',{logger:m=>{if(m.progress){bar.style.width=Math.round(m.progress*100)+'%';msg.textContent=(m.status||'Ανάγνωση')+' '+Math.round(m.progress*100)+'%'}}});txt.value=cleanOcr(result.data.text);msg.textContent='Ολοκληρώθηκε — έλεγξε το κείμενο.';bar.style.width='100%'}catch(e){msg.textContent='Η ανάγνωση απέτυχε: '+e.message}}
 function cleanOcr(t){return t.split(/\r?\n/).map(x=>upper(x.trim().replace(/\s{2,}/g,' '))).filter(x=>x.length>1).join('\n')}
@@ -164,7 +186,10 @@ function bind(){
   document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(DAILY_HEADERS.length-1).fill(''));renderDaily();save()};
   document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί ολόκληρη η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};
   document.getElementById('clearDaily').onclick=()=>{if(confirm('Να καθαριστεί το καθημερινό πρόγραμμα;')){state.daily[dayKey()]=blankDaily();renderDaily();save()}};
-  document.getElementById('saveLists').onclick=()=>{for(const k of ['clients','tanks','carriers','other'])state.lists[k]=document.getElementById(k+'List').value.split(/\n/).map(x=>upper(x.trim())).filter(Boolean);initLists();save();alert('Οι λίστες αποθηκεύτηκαν με κεφαλαία.')};
+  document.getElementById('saveLists').onclick=()=>{saveListsFromTextareas(true);initLists()};
+  for(const k of ['clients','tanks','carriers','other']){const el=document.getElementById(k+'List');el.addEventListener('input',()=>{const pos=el.selectionStart;const v=upper(el.value);if(el.value!==v){el.value=v;try{el.setSelectionRange(pos,pos)}catch{}}autosaveLists()});el.addEventListener('change',()=>saveListsFromTextareas(false));el.addEventListener('blur',()=>saveListsFromTextareas(false))}
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveListsFromTextareas(false)});
+  window.addEventListener('pagehide',()=>saveListsFromTextareas(false));
   document.getElementById('exportData').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='programma-fortoseon-backup.json';a.click();URL.revokeObjectURL(a.href)};
   document.getElementById('importData').onchange=async e=>{try{state=JSON.parse(await e.target.files[0].text());save();location.reload()}catch{alert('Μη έγκυρο αρχείο.')}};
   document.getElementById('eraseAll').onclick=()=>{if(confirm('Οριστική διαγραφή όλων των δεδομένων από αυτή τη συσκευή;')){localStorage.removeItem(KEY);localStorage.removeItem(LEGACY_KEY);location.reload()}};

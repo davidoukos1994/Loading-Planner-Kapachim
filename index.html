@@ -36,7 +36,7 @@
     <div class="sheet-wrap">
       <table class="excel weekly-sheet" id="weeklyTable">
         <thead>
-          <tr><th class="row-label">ΕΒΔΟΜΑΔΑ</th><th colspan="7" id="weekRange">—</th></tr>
+          <tr><th class="row-label"><div class="week-label-wrap"><span>ΕΒΔΟΜΑΔΑ</span><span class="week-total" id="weekTotal">ΣΥΝΟΛΟ ΒΥΤΙΩΝ: 0</span></div></th><th colspan="7" id="weekRange">—</th></tr>
           <tr id="weeklyDays"><th class="row-label">ΗΜΕΡΑ</th></tr>
         </thead>
         <tbody id="weeklyBody"></tbody>
@@ -80,8 +80,8 @@
         <textarea id="otherList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea>
       </article>
     </div>
-    <div class="toolbar"><button id="saveLists">Αποθήκευση λιστών</button></div>
-    <p class="hint">Οι προτάσεις εμφανίζονται όταν γράφεις μέσα σε οποιοδήποτε κελί.</p>
+    <div class="toolbar"><button id="saveLists">Αποθήκευση λιστών</button><span class="list-save-status" id="listSaveStatus">Αποθηκεύονται αυτόματα</span></div>
+    <p class="hint">Οι λίστες αποθηκεύονται αυτόματα καθώς γράφεις. Οι προτάσεις εμφανίζονται μέσα στα κελιά.</p>
   </section>
 
   <section id="backup" class="view">
