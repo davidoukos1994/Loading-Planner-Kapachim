@@ -103,3 +103,31 @@ dialog{border:0;border-radius:12px;max-width:820px;width:min(94vw,820px);box-sha
   .list-save-status{font-size:.75rem}
   .card textarea{min-height:260px;font-size:17px;line-height:1.45}
 }
+
+/* v8: καθημερινό, σειρά φορτώσεων και autocomplete μέσα στο κελί */
+.sheet-title{font-weight:900;text-align:center;background:#eef1f3;border:1px solid #bbc3ca;border-bottom:0;padding:8px;letter-spacing:.3px}
+.daily-sheet{min-width:1120px}.daily-sheet th:nth-child(1){width:42px;min-width:42px}.daily-sheet th:nth-child(2){min-width:170px}.daily-sheet th:nth-child(3){min-width:125px}.daily-sheet th:nth-child(4){min-width:190px}.daily-sheet th:nth-child(5){min-width:105px}.daily-sheet th:nth-child(6){min-width:165px}.daily-sheet th:nth-child(7){min-width:120px}.daily-sheet th:nth-child(8){min-width:165px}
+.sequence-sheet{min-width:880px}.sequence-sheet th:nth-child(1){width:42px;min-width:42px}.sequence-sheet th:not(:first-child){min-width:135px}.sequence-sheet td{height:48px}
+.autocomplete-wrap{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 32px;height:100%;overflow:visible}
+.autocomplete-wrap.no-picker{grid-template-columns:1fr}
+.inline-suggestions{position:absolute;left:0;right:0;top:100%;z-index:100000;background:#fff;border:2px solid #2d72d9;border-radius:0 0 8px 8px;box-shadow:0 10px 24px #0004;max-height:240px;overflow:auto;display:none}
+.inline-suggestions.open{display:block}
+.inline-suggestions button{display:block;width:100%;border:0;border-bottom:1px solid #e1e6ea;border-radius:0;background:#fff;text-align:left;padding:10px 12px;min-height:42px;font-size:14px;font-weight:800;color:#17212b}
+.inline-suggestions button:hover,.inline-suggestions button.active{background:#dfeeff}
+.inline-preview{position:absolute;left:7px;right:38px;top:50%;transform:translateY(-50%);pointer-events:none;color:#9aa4ad;font:12px Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:0}
+.autocomplete-wrap .cell-input{position:relative;z-index:1}
+.autocomplete-wrap:focus-within{z-index:100001}
+.completed-row td{background:#eaf6ec!important}.sequence-complete{display:flex;align-items:center;justify-content:center;height:100%}.sequence-complete input{width:24px;height:24px;accent-color:#287a44}
+@media(max-width:700px){
+ .daily-sheet{min-width:930px}.daily-sheet th,.sequence-sheet th{font-size:9px}.daily-sheet .cell-input,.sequence-sheet .cell-input{font-size:14px}
+ .sequence-sheet{min-width:780px}.inline-suggestions{position:fixed;left:6px!important;right:6px!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom) + 6px);max-height:42vh;border-radius:10px}
+ .inline-suggestions button{font-size:16px;min-height:48px}
+}
+
+/* v9: το autocomplete εμφανίζεται δίπλα στο ενεργό κελί και στο κινητό */
+.sheet-wrap{overflow:auto}
+td:focus-within{position:relative;z-index:100002}
+@media(max-width:700px){
+ .inline-suggestions{position:absolute!important;left:0!important;right:0!important;top:100%!important;bottom:auto!important;min-width:230px;max-width:min(82vw,360px);max-height:260px;border-radius:0 0 10px 10px}
+ .daily-sheet .inline-suggestions{left:0!important;right:auto!important;width:min(82vw,360px)}
+}
