@@ -173,15 +173,92 @@ function renderDaily(){
 function applyMobileDay(){document.querySelectorAll('#weeklyTable [data-day]').forEach(el=>el.classList.add('mobile-visible'));}
 function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))];const el=document.getElementById(k+'List');if(el)el.value=state.lists[k].join('\n')}}
 function bindTabs(){document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.view).classList.add('active');hideSuggestions()})}
-async function runOcr(file){const dlg=document.getElementById('ocrDialog');dlg.showModal();const bar=document.getElementById('ocrBar'),msg=document.getElementById('ocrMessage'),txt=document.getElementById('ocrText');bar.style.width='0';txt.value='';msg.textContent='Φόρτωση μηχανής OCR…';try{const result=await Tesseract.recognize(file,'ell+eng',{logger:m=>{if(m.progress){bar.style.width=Math.round(m.progress*100)+'%';msg.textContent=(m.status||'Ανάγνωση')+' '+Math.round(m.progress*100)+'%'}}});txt.value=cleanOcr(result.data.text);msg.textContent='Ολοκληρώθηκε — έλεγξε το κείμενο.';bar.style.width='100%'}catch(e){msg.textContent='Η ανάγνωση απέτυχε: '+e.message}}
-function cleanOcr(t){return t.split(/\r?\n/).map(x=>upper(x.trim().replace(/\s{2,}/g,' '))).filter(x=>x.length>1).join('\n')}
-function insertOcr(){const lines=document.getElementById('ocrText').value.split(/\n/).map(x=>upper(x.trim())).filter(Boolean);if(!lines.length)return;const active=document.querySelector('.view.active');let inputs=[...active.querySelectorAll('.cell-input')].filter(x=>x.offsetParent!==null);let start=selectedInputs[0]?inputs.indexOf(selectedInputs[0]):0;if(start<0)start=0;lines.forEach((line,i)=>{const el=inputs[start+i];if(el){el.value=line;el.dispatchEvent(new Event('input',{bubbles:true}))}});save();document.getElementById('ocrDialog').close()}
+function normalizeForMatch(value){
+  return upper(value)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[0ΟO]/g,'Ο').replace(/[1ΙI]/g,'Ι')
+    .replace(/[^A-ZΑ-Ω0-9]+/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+function levenshtein(a,b){
+  const m=a.length,n=b.length,dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
+  for(let i=0;i<=m;i++)dp[i][0]=i;for(let j=0;j<=n;j++)dp[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return dp[m][n];
+}
+function extractKnownClients(rawText){
+  const clients=allSuggestions('clients');
+  const lines=rawText.split(/\r?\n/).map(x=>normalizeForMatch(x)).filter(Boolean);
+  const found=[];
+  for(const line of lines){
+    const matches=[];
+    for(const client of clients){
+      const nc=normalizeForMatch(client);if(!nc)continue;
+      let score=999;
+      if(line.includes(nc))score=0;
+      else if(nc.includes(line)&&line.length>=Math.max(4,nc.length-3))score=1;
+      else{
+        const words=line.split(' '),targetWords=nc.split(' '),windowSize=targetWords.length;
+        for(let i=0;i<=Math.max(0,words.length-windowSize);i++){
+          const part=words.slice(i,i+windowSize).join(' ');
+          const d=levenshtein(part,nc);score=Math.min(score,d);
+        }
+      }
+      const allowed=Math.max(1,Math.floor(nc.length*0.18));
+      if(score<=allowed)matches.push({client,score,pos:Math.max(0,line.indexOf(nc))});
+    }
+    matches.sort((a,b)=>a.pos-b.pos||a.score-b.score||b.client.length-a.client.length);
+    const used=new Set();
+    for(const match of matches){if(!used.has(match.client)){found.push(match.client);used.add(match.client)}}
+  }
+  return found;
+}
+async function makeRotatedImage(file,degrees){
+  if(!degrees)return file;
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=url});
+    const canvas=document.createElement('canvas'),swap=Math.abs(degrees)%180===90;
+    canvas.width=swap?img.naturalHeight:img.naturalWidth;canvas.height=swap?img.naturalWidth:img.naturalHeight;
+    const ctx=canvas.getContext('2d');ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(degrees*Math.PI/180);ctx.drawImage(img,-img.naturalWidth/2,-img.naturalHeight/2);
+    return canvas;
+  }finally{URL.revokeObjectURL(url)}
+}
+async function recognizeClients(source,bar,msg,attemptLabel){
+  const result=await Tesseract.recognize(source,'ell+eng',{logger:m=>{if(m.progress){bar.style.width=Math.round(m.progress*100)+'%';msg.textContent=attemptLabel+' — '+(m.status||'Ανάγνωση')+' '+Math.round(m.progress*100)+'%'}}});
+  return {raw:result.data.text,clients:extractKnownClients(result.data.text)};
+}
+async function runOcr(file){
+  const dlg=document.getElementById('ocrDialog');dlg.showModal();
+  const bar=document.getElementById('ocrBar'),msg=document.getElementById('ocrMessage'),txt=document.getElementById('ocrText');
+  bar.style.width='0';txt.value='';msg.textContent='Φόρτωση αναγνώρισης πελατών…';
+  try{
+    let best=await recognizeClients(file,bar,msg,'Ανάγνωση φωτογραφίας');
+    if(best.clients.length<2){
+      for(const [deg,label] of [[90,'Δοκιμή περιστροφής'],[-90,'Δεύτερη δοκιμή περιστροφής']]){
+        const rotated=await makeRotatedImage(file,deg);const candidate=await recognizeClients(rotated,bar,msg,label);
+        if(candidate.clients.length>best.clients.length)best=candidate;
+        if(best.clients.length>=3)break;
+      }
+    }
+    txt.value=best.clients.join('\n');bar.style.width='100%';
+    msg.textContent=best.clients.length?`Βρέθηκαν ${best.clients.length} πελάτες. Θα περαστούν μόνο αυτά τα ονόματα.`:'Δεν βρέθηκε όνομα από τη λίστα πελατών. Πρόσθεσε πρώτα τον πελάτη στη λίστα ή γράψ’ τον χειροκίνητα.';
+  }catch(e){msg.textContent='Η ανάγνωση απέτυχε: '+e.message}
+}
+function insertOcr(){
+  const lines=document.getElementById('ocrText').value.split(/\n/).map(x=>upper(x.trim())).filter(x=>allSuggestions('clients').includes(x));
+  if(!lines.length){alert('Δεν υπάρχουν αναγνωρισμένοι πελάτες για εισαγωγή.');return;}
+  const active=document.querySelector('.view.active');let inputs=[...active.querySelectorAll('.cell-input')].filter(x=>x.offsetParent!==null&&x.dataset.listKey==='clients');
+  let start=selectedInputs[0]?inputs.indexOf(selectedInputs[0]):0;if(start<0)start=0;
+  lines.forEach((line,i)=>{const el=inputs[start+i];if(el){el.value=line;el.dispatchEvent(new Event('input',{bubbles:true}))}});
+  save();document.getElementById('ocrDialog').close();
+}
 function bind(){
   bindTabs();
   document.getElementById('weekStart').onchange=e=>{state.weekStart=e.target.value;renderWeekly();save()};
   document.getElementById('dailyDate').onchange=e=>{state.dailyDate=e.target.value;renderDaily();save()};
   document.getElementById('weeklyPhotoBtn').onclick=()=>document.getElementById('weeklyPhoto').click();document.getElementById('dailyPhotoBtn').onclick=()=>document.getElementById('dailyPhoto').click();
-  document.getElementById('weeklyPhoto').onchange=e=>e.target.files[0]&&runOcr(e.target.files[0]);document.getElementById('dailyPhoto').onchange=e=>e.target.files[0]&&runOcr(e.target.files[0]);
+  document.getElementById('weeklyPhoto').onchange=e=>{const f=e.target.files[0];if(f)runOcr(f);e.target.value=''};document.getElementById('dailyPhoto').onchange=e=>{const f=e.target.files[0];if(f)runOcr(f);e.target.value=''};
   document.getElementById('insertOcrLines').onclick=insertOcr;document.getElementById('copyOcr').onclick=()=>navigator.clipboard.writeText(document.getElementById('ocrText').value);
   document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(DAILY_HEADERS.length-1).fill(''));renderDaily();save()};
   document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί ολόκληρη η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};

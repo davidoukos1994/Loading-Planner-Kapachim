@@ -100,16 +100,16 @@
 <dialog id="ocrDialog">
   <form method="dialog" class="ocr-panel">
     <div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div>
-    <p>Η εικόνα δεν αποθηκεύεται. Η αναγνώριση γίνεται μέσα στον browser.</p>
+    <p>Η εικόνα δεν αποθηκεύεται. Η εφαρμογή αναζητά <strong>μόνο ονόματα που υπάρχουν στη λίστα Πελατών / εταιρειών</strong> και αγνοεί ημερομηνίες, προϊόντα, αριθμούς και τίτλους.</p>
     <div class="progress"><div id="ocrBar"></div></div>
     <div id="ocrMessage">Προετοιμασία…</div>
-    <textarea id="ocrText" rows="16" placeholder="Το αναγνωρισμένο κείμενο θα εμφανιστεί εδώ"></textarea>
+    <textarea id="ocrText" rows="16" placeholder="Εδώ θα εμφανιστούν μόνο οι πελάτες που αναγνωρίστηκαν"></textarea>
     <div class="toolbar">
-      <button type="button" id="insertOcrLines">Πέρασμα γραμμών στα επιλεγμένα κελιά</button>
+      <button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button>
       <button type="button" id="copyOcr">Αντιγραφή κειμένου</button>
       <button value="cancel">Κλείσιμο</button>
     </div>
-    <p class="hint">Για μεγαλύτερη ακρίβεια: φωτογράφισε ίσια, ολόκληρο τον πίνακα, χωρίς αντανάκλαση. Έλεγξε τα κελιά πριν τα κρατήσεις.</p>
+    <p class="hint">Για μεγαλύτερη ακρίβεια: κράτησε τη φωτογραφία καθαρή και χωρίς αντανάκλαση. Αν ένας πελάτης δεν αναγνωρίζεται, πρόσθεσέ τον πρώτα στη λίστα Πελατών / εταιρειών.</p>
   </form>
 </dialog>
 
