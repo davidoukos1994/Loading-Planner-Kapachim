@@ -3,7 +3,7 @@ const WEEK_PRODUCT_SECTIONS=[
  {key:'hypochlorite',label:'ΥΠΟΧΛΩΡΙΩΔΕΣ ΝΑΤΡΙΟ',rows:15,cls:'product-hypochlorite'},
  {key:'hydrochloric',label:'ΥΔΡΟΧΛΩΡΙΚΟ ΟΞΥ',rows:2,cls:'product-hydrochloric'},
  {key:'brine',label:'ΑΛΜΗ',rows:2,cls:'product-brine'},
- {key:'salt',label:'ΑΛΑΤΙ',rows:2,cls:'product-salt'}
+ {key:'salt',label:'ΑΛΑΤΙ',rows:3,cls:'product-salt'}
 ];
 const DAILY_HEADERS=['#','ΠΕΛΑΤΗΣ','ΑΠΟ ΔΕΞΑΜΕΝΗ','ΜΕΤΑΦΟΡΕΑΣ','ΠΟΣΟΤΗΤΑ','ΗΜ/ΝΙΑ - ΒΑΡΔΙΑ','ΩΡΑ ΦΟΡΤΩΣΗΣ','ΥΠΕΥΘΥΝΟΣ ΦΟΡΤΩΣΗΣ'];
 const SEQUENCE_HEADERS=['#','ΔΕΞΑΜΕΝΗ','ΑΡΧΙΚΗ ΣΤΑΘΜΗ','ΤΕΛΙΚΗ ΣΤΑΘΜΗ','ΕΝΕΡΓΑ','ΣΟΔΑ','ΟΛΟΚΛΗΡΩΘΗΚΕ'];
@@ -116,7 +116,18 @@ function insertOcr(){
  save();document.getElementById('ocrDialog').close()
 }
 function bind(){bindTabs();
- document.getElementById('weekStart').onchange=e=>{state.weekStart=e.target.value;renderWeekly();save()};document.getElementById('dailyDate').onchange=e=>{state.dailyDate=e.target.value;renderDaily();save()};document.getElementById('sequenceDate').onchange=e=>{state.sequenceDate=e.target.value;renderSequence();save()};
+ document.getElementById('weekStart').onchange=e=>{
+  const oldKey=weekKey();
+  const oldWeekly=normalizeWeekly(state.weekly[oldKey]);
+  const oldDone=normalizeDone(state.weeklyDone[oldKey]);
+  const newKey=e.target.value||mondayOfToday();
+  // Η αλλαγή ημερομηνιών δεν καθαρίζει τις εγγραφές. Αν η νέα εβδομάδα
+  // δεν έχει δικά της δεδομένα, αντιγράφεται το τρέχον πρόγραμμα.
+  if(!state.weekly[newKey]) state.weekly[newKey]=oldWeekly;
+  if(!state.weeklyDone[newKey]) state.weeklyDone[newKey]=oldDone;
+  state.weekStart=newKey;
+  renderWeekly();save()
+};document.getElementById('dailyDate').onchange=e=>{state.dailyDate=e.target.value;renderDaily();save()};document.getElementById('sequenceDate').onchange=e=>{state.sequenceDate=e.target.value;renderSequence();save()};
  document.getElementById('weeklyPhotoBtn').onclick=()=>document.getElementById('weeklyPhoto').click();document.getElementById('dailyPhotoBtn').onclick=()=>document.getElementById('dailyPhoto').click();document.getElementById('weeklyPhoto').onchange=e=>{if(e.target.files[0])runOcr(e.target.files[0],'weekly');e.target.value=''};document.getElementById('dailyPhoto').onchange=e=>{if(e.target.files[0])runOcr(e.target.files[0],'daily');e.target.value=''};
  document.getElementById('insertOcrLines').onclick=insertOcr;document.getElementById('copyOcr').onclick=()=>navigator.clipboard.writeText(document.getElementById('ocrText').value);
  document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(7).fill(''));renderDaily();save()};document.getElementById('addSequenceRow').onclick=()=>{state.sequence[seqKey()].push(Array(6).fill(''));renderSequence();save()};
