@@ -343,12 +343,18 @@ function bind(){bindTabs();bindClipboardButtons();
 // αυτόματα τη συμπαγή εβδομάδα όταν ο χρήστης ξεζουμάρει.
 function syncVisualViewportLayout(){
  const vv=window.visualViewport;
- const visibleWidth=Math.max(320,Math.round(vv?.width||window.innerWidth||document.documentElement.clientWidth));
- document.documentElement.style.setProperty('--app-visual-width',visibleWidth+'px');
- const zoomedOut=!!(vv&&vv.scale<0.92);
+ const scale=Number(vv?.scale||1);
+ const zoomedOut=scale<0.94;
+ const zoomedIn=scale>1.08;
  document.body.classList.toggle('visual-zoom-out',zoomedOut);
+ document.body.classList.toggle('zoom-overview',zoomedOut);
+ document.body.classList.toggle('zoom-detail',zoomedIn);
  const table=document.getElementById('weeklyTable');
- if(table)table.classList.toggle('auto-fit-week',zoomedOut);
+ if(table){
+  // Στο zoom out χρησιμοποιούμε καθαρή επισκόπηση. Στο zoom in επιστρέφουμε
+  // σε μεγάλα επεξεργάσιμα κελιά. Το χειροκίνητο «Όλη η εβδομάδα» παραμένει ανεξάρτητο.
+  table.classList.toggle('auto-fit-week',zoomedOut);
+ }
 }
 function bindVisualViewportLayout(){
  syncVisualViewportLayout();

@@ -242,3 +242,73 @@ body.visual-zoom-out .sheet-wrap{width:100%;max-width:none}
   .weekly-sheet.auto-fit-week .done-check{min-width:18px}
   .weekly-sheet.auto-fit-week .done-check span{width:15px;height:15px;font-size:9px}
 }
+
+/* v2.5: σταθερή και καθαρή προβολή στο iPhone σε zoom out / zoom in.
+   Στο zoom out εμφανίζεται καθαρή επισκόπηση 7 ημερών χωρίς τα κουμπιά να κλέβουν χώρο.
+   Στο zoom in διατηρούνται μεγάλα, επεξεργάσιμα κελιά με οριζόντια κύλιση. */
+html,body{width:100%;max-width:100%;}
+body{min-width:0!important;}
+body.visual-zoom-out .topbar,
+body.visual-zoom-out .tabs,
+body.visual-zoom-out main{width:100%!important;max-width:100%!important;}
+body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;overflow-x:hidden;}
+
+@media(max-width:700px){
+  /* Επισκόπηση ολόκληρης εβδομάδας: ονόματα σε 2 γραμμές, χωρίς βελάκια/τικ. */
+  body.zoom-overview .weekly-sheet{
+    width:100%!important;
+    min-width:100%!important;
+    table-layout:fixed!important;
+  }
+  body.zoom-overview .weekly-sheet .row-label{
+    width:48px!important;min-width:48px!important;max-width:48px!important;
+    position:static!important;font-size:7px!important;
+  }
+  body.zoom-overview .weekly-sheet th:not(.row-label),
+  body.zoom-overview .weekly-sheet tr.weekly-entry-row td{
+    width:auto!important;min-width:0!important;max-width:none!important;
+  }
+  body.zoom-overview .weekly-sheet .entry-with-check{
+    display:block!important;height:100%!important;
+  }
+  body.zoom-overview .weekly-sheet .picker-button,
+  body.zoom-overview .weekly-sheet .done-check{
+    display:none!important;
+  }
+  body.zoom-overview .weekly-sheet tr.weekly-entry-row td{height:44px!important;}
+  body.zoom-overview .weekly-sheet tr.weekly-entry-row .client-name-input{
+    display:block!important;
+    width:100%!important;
+    height:43px!important;min-height:43px!important;
+    padding:4px 2px!important;
+    font-size:9px!important;line-height:1.08!important;font-weight:700!important;
+    white-space:normal!important;overflow:hidden!important;overflow-wrap:anywhere!important;
+    text-align:left!important;
+  }
+  body.zoom-overview .weekly-sheet tr.weekly-product-header th,
+  body.zoom-overview .weekly-sheet tr.weekly-product-header td{
+    height:34px!important;font-size:7px!important;line-height:1.05!important;padding:3px 1px!important;
+    overflow-wrap:anywhere!important;
+  }
+  body.zoom-overview .weekly-sheet thead th{position:static!important;font-size:7px!important;padding:3px 1px!important;}
+  body.zoom-overview .floating-tools{display:none!important;}
+
+  /* Μεγέθυνση: ευανάγνωστα κελιά και κύλιση, χωρίς επικάλυψη από sticky πρώτη στήλη. */
+  body.zoom-detail .sheet-wrap{overflow:auto!important;-webkit-overflow-scrolling:touch;}
+  body.zoom-detail .weekly-sheet{min-width:1500px!important;width:max-content!important;table-layout:fixed!important;}
+  body.zoom-detail .weekly-sheet .row-label{
+    position:static!important;width:92px!important;min-width:92px!important;max-width:92px!important;
+  }
+  body.zoom-detail .weekly-sheet th:not(.row-label),
+  body.zoom-detail .weekly-sheet tr.weekly-entry-row td{
+    width:190px!important;min-width:190px!important;max-width:190px!important;
+  }
+  body.zoom-detail .weekly-sheet tr.weekly-entry-row td{height:54px!important;}
+  body.zoom-detail .weekly-sheet tr.weekly-entry-row .client-name-input{
+    height:53px!important;min-height:53px!important;font-size:16px!important;line-height:1.18!important;
+    padding:7px 6px!important;white-space:normal!important;overflow-wrap:anywhere!important;
+  }
+  body.zoom-detail .weekly-sheet .entry-with-check{grid-template-columns:minmax(0,1fr) 34px 40px!important;}
+  body.zoom-detail .weekly-sheet .picker-button{min-width:34px!important;width:34px!important;}
+  body.zoom-detail .weekly-sheet .done-check{min-width:40px!important;}
+}
