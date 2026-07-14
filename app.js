@@ -1,4 +1,4 @@
-const KEY='loadingPlanner.v5', OLD_KEYS=['loadingPlanner.v4','loadingPlanner.v3','loadingPlanner.v2','loadingPlanner.v1'];
+const KEY='loadingPlanner.v7', OLD_KEYS=['loadingPlanner.v6','loadingPlanner.v5','loadingPlanner.v4','loadingPlanner.v3','loadingPlanner.v2','loadingPlanner.v1'];
 const WEEK_PRODUCT_SECTIONS=[
  {key:'hypochlorite',label:'ΥΠΟΧΛΩΡΙΩΔΕΣ ΝΑΤΡΙΟ',rows:15,cls:'product-hypochlorite'},
  {key:'hydrochloric',label:'ΥΔΡΟΧΛΩΡΙΚΟ ΟΞΥ',rows:2,cls:'product-hydrochloric'},
@@ -8,7 +8,7 @@ const WEEK_PRODUCT_SECTIONS=[
 const DAILY_HEADERS=['#','ΠΕΛΑΤΗΣ','ΑΠΟ ΔΕΞΑΜΕΝΗ','ΜΕΤΑΦΟΡΕΑΣ','ΠΟΣΟΤΗΤΑ','ΗΜ/ΝΙΑ - ΒΑΡΔΙΑ','ΩΡΑ ΦΟΡΤΩΣΗΣ','ΥΠΕΥΘΥΝΟΣ ΦΟΡΤΩΣΗΣ'];
 const SEQUENCE_HEADERS=['#','ΔΕΞΑΜΕΝΗ','ΑΡΧΙΚΗ ΣΤΑΘΜΗ','ΤΕΛΙΚΗ ΣΤΑΘΜΗ','ΕΝΕΡΓΑ','ΣΟΔΑ','ΟΛΟΚΛΗΡΩΘΗΚΕ'];
 const SALT_OPTIONS=['ΕΛΛΗΝΙΚΕΣ ΑΛΥΚΕΣ','ΔΑΚΑΡΙΔΗΣ'];
-let state=loadState(), selectedInputs=[], ocrTarget='weekly';
+let state=loadState(), selectedInputs=[], ocrTarget='weekly', ocrPending=[];
 
 function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},sequenceDate:'',sequence:{},lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
 function loadState(){try{let raw=localStorage.getItem(KEY);if(!raw)for(const k of OLD_KEYS){raw=localStorage.getItem(k);if(raw)break}const p=raw?JSON.parse(raw):{},b=defaultState();return {...b,...p,lists:{...b.lists,...(p.lists||{})},weeklyDone:p.weeklyDone||{},sequence:p.sequence||{}}}catch{return defaultState()}}
@@ -46,24 +46,40 @@ function makeInput(value,onChange,classes='',listKey=null,withPicker=false,optio
  input.className='cell-input '+classes+(isClient?' client-name-input':'');input.dataset.listKey=listKey||'';input.value=upper(value);input.autocomplete='off';input.autocapitalize='characters';input.spellcheck=false;
  const preview=document.createElement('div');preview.className='inline-preview';const menu=document.createElement('div');menu.className='inline-suggestions';
  function close(){menu.classList.remove('open');menu.innerHTML='';preview.textContent=''}
- function openAll(){if(!listKey)return;const hits=matches('',listKey,true);menu.innerHTML='';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.onpointerdown=e=>{e.preventDefault();input.value=hit;onChange(hit);if(options.addToClients&&listKey==='clients')addClientToList(hit);save();close();input.focus()};menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
+ function choose(hit){input.value=hit;onChange(hit);if(options.addToClients&&listKey==='clients')addClientToList(hit);save();close();input.focus()}
+ function openAll(){if(!listKey)return;const hits=matches('',listKey,true);menu.innerHTML='';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.addEventListener('pointerdown',e=>e.preventDefault());b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();choose(hit)});b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();choose(hit)},{passive:false});menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
  input.addEventListener('input',()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();close()});
  input.addEventListener('focus',()=>{selectCell(input);close()});
  input.addEventListener('click',()=>close());
  input.addEventListener('keydown',e=>{if(e.key==='Enter'&&isClient)e.preventDefault();if(e.key==='Escape')close()});
  input.addEventListener('blur',()=>{setTimeout(close,180);if(options.addToClients&&listKey==='clients')addClientToList(input.value)});
  wrap.append(input,preview);
- if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.setAttribute('aria-label','Άνοιγμα λίστας');p.onpointerdown=e=>e.preventDefault();p.onclick=()=>{input.focus();openAll()};wrap.appendChild(p)}
+ if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.setAttribute('aria-label','Άνοιγμα λίστας');p.addEventListener('pointerdown',e=>e.preventDefault());p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();input.focus();openAll()});wrap.appendChild(p)}
  wrap.appendChild(menu);return {wrap,input}
 }
 function weeklyTotal(){const w=state.weekly[weekKey()]||blankWeekly();return WEEK_PRODUCT_SECTIONS.reduce((t,s)=>t+w[s.key].flat().filter(Boolean).length,0)}
 function updateWeekTotal(){document.getElementById('weekTotal').textContent='ΣΥΝΟΛΟ ΒΥΤΙΩΝ: '+weeklyTotal()}
+function todayDayIndexForWeek(startDate){
+ const today=new Date();today.setHours(12,0,0,0);
+ const start=new Date(startDate);start.setHours(12,0,0,0);
+ const diff=Math.round((today-start)/86400000);
+ return diff>=0&&diff<7?diff:-1;
+}
+function focusTodayColumn(startDate){
+ if(!window.matchMedia('(max-width: 700px)').matches)return;
+ const day=todayDayIndexForWeek(startDate);if(day<0)return;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  document.querySelectorAll('#weeklyTable [data-day]').forEach(el=>el.classList.toggle('today-column',Number(el.dataset.day)===day));
+  const target=document.querySelector(`#weeklyDays th[data-day="${day}"]`);
+  if(target)target.scrollIntoView({behavior:'auto',block:'nearest',inline:'center'});
+ }));
+}
 function renderWeekly(){
  const start=new Date((state.weekStart||mondayOfToday())+'T12:00:00');state.weekStart=iso(start);document.getElementById('weekStart').value=state.weekStart;const k=weekKey();state.weekly[k]=normalizeWeekly(state.weekly[k]);state.weeklyDone[k]=normalizeDone(state.weeklyDone[k]);
  const days=document.getElementById('weeklyDays');days.innerHTML='<th class="row-label">ΠΡΟΪΟΝ / ΘΕΣΗ</th>';const names=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];const end=new Date(start);end.setDate(end.getDate()+6);document.getElementById('weekRange').textContent=fmt(start)+' – '+fmt(end);
  names.forEach((n,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);const th=document.createElement('th');th.dataset.day=i;th.innerHTML=`${fmt(d)}<br><strong>${n}</strong>`;days.appendChild(th)});
  const body=document.getElementById('weeklyBody');body.innerHTML='';WEEK_PRODUCT_SECTIONS.forEach(s=>{const h=document.createElement('tr');h.className='weekly-product-header '+s.cls;const th=document.createElement('th');th.className='row-label';th.textContent=s.label;h.appendChild(th);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;td.textContent=s.label;h.appendChild(td)}body.appendChild(h);
- for(let r=0;r<s.rows;r++){const tr=document.createElement('tr');tr.className='weekly-entry-row '+s.cls;const num=document.createElement('th');num.className='row-label entry-number';num.textContent=r+1;tr.appendChild(num);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;const x=makeInput(state.weekly[k][s.key][r][c],v=>{state.weekly[k][s.key][r][c]=v;updateWeekTotal()},'ocr-client-input',s.key==='salt'?'salt':'clients',true,{addToClients:s.key!=='salt'});const outer=document.createElement('div');outer.className='entry-with-check';const check=document.createElement('label');check.className='done-check';const cb=document.createElement('input');cb.type='checkbox';cb.checked=state.weeklyDone[k][s.key][r][c];const mark=document.createElement('span');mark.textContent='✓';cb.onchange=()=>{state.weeklyDone[k][s.key][r][c]=cb.checked;outer.classList.toggle('completed',cb.checked);save()};check.append(cb,mark);outer.append(x.wrap,check);outer.classList.toggle('completed',cb.checked);td.appendChild(outer);tr.appendChild(td)}body.appendChild(tr)}});updateWeekTotal()
+ for(let r=0;r<s.rows;r++){const tr=document.createElement('tr');tr.className='weekly-entry-row '+s.cls;const num=document.createElement('th');num.className='row-label entry-number';num.textContent=r+1;tr.appendChild(num);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;const x=makeInput(state.weekly[k][s.key][r][c],v=>{state.weekly[k][s.key][r][c]=v;updateWeekTotal()},'ocr-client-input',s.key==='salt'?'salt':'clients',true,{addToClients:s.key!=='salt'});const outer=document.createElement('div');outer.className='entry-with-check';const check=document.createElement('label');check.className='done-check';const cb=document.createElement('input');cb.type='checkbox';cb.checked=state.weeklyDone[k][s.key][r][c];const mark=document.createElement('span');mark.textContent='✓';cb.onchange=()=>{state.weeklyDone[k][s.key][r][c]=cb.checked;outer.classList.toggle('completed',cb.checked);save()};check.append(cb,mark);outer.append(x.wrap,check);outer.classList.toggle('completed',cb.checked);td.appendChild(outer);td.addEventListener('click',e=>{if(e.target.closest('button,.done-check'))return;x.input.focus();selectCell(x.input)});tr.appendChild(td)}body.appendChild(tr)}});updateWeekTotal();focusTodayColumn(start)
 }
 function normalizeRows(rows,count){const out=Array.isArray(rows)?rows:[];return out.map(r=>Array.from({length:count},(_,i)=>upper(r?.[i]||'')))}
 function renderDaily(){state.dailyDate=state.dailyDate||iso(new Date());document.getElementById('dailyDate').value=state.dailyDate;const k=dayKey();if(!state.daily[k])state.daily[k]=blankDaily();state.daily[k]=normalizeRows(state.daily[k],7);const head=document.getElementById('dailyHead');head.innerHTML='';DAILY_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('dailyBody');body.innerHTML='';state.daily[k].forEach((row,ri)=>{const tr=document.createElement('tr');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');const keys=['clients','tanks','carriers',null,null,null,'other'],key=keys[ci];const x=makeInput(v,val=>state.daily[k][ri][ci]=val,(ci===0?'ocr-client-input ':'')+(ci===3&&/24|25/.test(v)?'yellow':''),key,!!key);td.appendChild(x.wrap);tr.appendChild(td)});body.appendChild(tr)})}
@@ -81,6 +97,28 @@ function bestClientInLine(line){
   if(score<bestScore){bestScore=score;best=client}
  }
  return bestScore<10?best:null
+}
+function parseOcrDate(text){
+ const m=String(text||'').match(/\b([0-3]?\d)[\/\-.]([01]?\d)(?:[\/\-.](\d{2,4}))?\b/);
+ if(!m)return null;
+ let y=m[3]?Number(m[3]):new Date().getFullYear();if(y<100)y+=2000;
+ const d=new Date(y,Number(m[2])-1,Number(m[1]),12,0,0);
+ return Number.isNaN(d.getTime())?null:d
+}
+function weekdayIndexFromDate(d){return (d.getDay()+6)%7}
+function extractWeeklyLayout(data){
+ const rawLines=(data.lines||[]).filter(x=>x&&x.text&&x.bbox);
+ const dateHeads=[];
+ for(const line of rawLines){const d=parseOcrDate(line.text);if(d){dateHeads.push({dayIndex:weekdayIndexFromDate(d),x:(line.bbox.x0+line.bbox.x1)/2,y:line.bbox.y1,date:d})}}
+ const entries=[];
+ for(const line of rawLines){const client=bestClientInLine(line.text);if(!client)continue;const x=(line.bbox.x0+line.bbox.x1)/2,y=(line.bbox.y0+line.bbox.y1)/2;let dayIndex=null;
+  const candidates=dateHeads.filter(h=>y>=h.y-20);
+  if(candidates.length){candidates.sort((a,b)=>Math.abs(a.x-x)-Math.abs(b.x-x));dayIndex=candidates[0].dayIndex}
+  if(dayIndex===null){const now=new Date();dayIndex=weekdayIndexFromDate(now)}
+  entries.push({name:client,dayIndex,y,x})
+ }
+ entries.sort((a,b)=>a.dayIndex-b.dayIndex||a.y-b.y||a.x-b.x);
+ return entries
 }
 function extractWeeklyClients(text){
  const out=[];for(const line of text.split(/\r?\n/)){const c=bestClientInLine(line);if(c)out.push(c)}return out
@@ -103,27 +141,32 @@ function extractDailyClients(text){
  return out
 }
 async function runOcr(file,target){
- ocrTarget=target||'weekly';
+ ocrTarget=target||'weekly';ocrPending=[];
  const dlg=document.getElementById('ocrDialog'),bar=document.getElementById('ocrBar'),msg=document.getElementById('ocrMessage'),txt=document.getElementById('ocrText'),insert=document.getElementById('insertOcrLines');
- dlg.showModal();bar.style.width='0';txt.value='';insert.textContent=ocrTarget==='daily'?'Πέρασμα πελατών στη στήλη ΠΕΛΑΤΗΣ':'Πέρασμα πελατών στα εβδομαδιαία κελιά';
+ dlg.showModal();bar.style.width='0';txt.value='';insert.textContent=ocrTarget==='daily'?'Πέρασμα πελατών στη στήλη ΠΕΛΑΤΗΣ':'Πέρασμα πελατών στις σωστές ημέρες';
  try{const r=await Tesseract.recognize(file,'ell+eng',{logger:m=>{if(m.progress){bar.style.width=Math.round(m.progress*100)+'%';msg.textContent=(m.status||'Ανάγνωση')+' '+Math.round(m.progress*100)+'%'}}});
-  const found=ocrTarget==='daily'?extractDailyClients(r.data.text):extractWeeklyClients(r.data.text);
-  txt.value=found.join('\n');msg.textContent=found.length?`Βρέθηκαν ${found.length} πελάτες. Θα συμπληρωθούν μόνο τα πεδία ΠΕΛΑΤΗΣ.`:'Δεν βρέθηκε πελάτης από τη λίστα.'
+  if(ocrTarget==='daily'){
+   const found=extractDailyClients(r.data.text);ocrPending=found.map(name=>({name}));txt.value=found.join('\n');
+  }else{
+   let found=extractWeeklyLayout(r.data);
+   if(!found.length)found=extractWeeklyClients(r.data.text).map(name=>({name,dayIndex:weekdayIndexFromDate(new Date())}));
+   ocrPending=found;const dayNames=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];
+   txt.value=found.map(x=>`${dayNames[x.dayIndex]||''}: ${x.name}`).join('\n');
+  }
+  msg.textContent=ocrPending.length?`Βρέθηκαν ${ocrPending.length} πελάτες. Θα περαστούν μόνο ονόματα πελατών.`:'Δεν βρέθηκε πελάτης από τη λίστα.'
  }catch(e){msg.textContent='Αποτυχία: '+e.message}
 }
 function insertOcr(){
- const lines=document.getElementById('ocrText').value.split(/\n/).map(x=>upper(x.trim())).filter(Boolean);
- const section=document.getElementById(ocrTarget==='daily'?'daily':'weekly');
- const inputs=[...section.querySelectorAll('.ocr-client-input')].filter(x=>x.offsetParent!==null);
- let start=0;
- if(selectedInputs[0]&&inputs.includes(selectedInputs[0]))start=inputs.indexOf(selectedInputs[0]);
- // Δεν αγγίζουμε δεξαμενή, μεταφορέα, ποσότητα, βάρδια, ώρα ή υπεύθυνο.
- // Από το επιλεγμένο κελί και μετά συμπληρώνουμε τα επόμενα κενά πεδία πελάτη.
- let cursor=Math.max(0,start);
- for(const name of lines){
-  while(cursor<inputs.length&&inputs[cursor].value.trim())cursor++;
-  if(cursor>=inputs.length)break;
-  inputs[cursor].value=name;inputs[cursor].dispatchEvent(new Event('input',{bubbles:true}));cursor++;
+ if(ocrTarget==='daily'){
+  const lines=(ocrPending.length?ocrPending.map(x=>x.name):document.getElementById('ocrText').value.split(/\n/).map(x=>upper(x.trim())).filter(Boolean));
+  const inputs=[...document.querySelectorAll('#daily .ocr-client-input')].filter(x=>x.offsetParent!==null);let start=0;if(selectedInputs[0]&&inputs.includes(selectedInputs[0]))start=inputs.indexOf(selectedInputs[0]);let cursor=Math.max(0,start);
+  for(const name of lines){while(cursor<inputs.length&&inputs[cursor].value.trim())cursor++;if(cursor>=inputs.length)break;inputs[cursor].value=name;inputs[cursor].dispatchEvent(new Event('input',{bubbles:true}));cursor++}
+ }else{
+  const entries=ocrPending.length?ocrPending:document.getElementById('ocrText').value.split(/\n/).map(x=>({name:upper(x.replace(/^.*?:\s*/,'')),dayIndex:weekdayIndexFromDate(new Date())})).filter(x=>x.name);
+  const k=weekKey();state.weekly[k]=normalizeWeekly(state.weekly[k]);
+  const grouped=Array.from({length:7},()=>[]);for(const e of entries){if(e.name)grouped[Math.max(0,Math.min(6,Number(e.dayIndex)||0))].push(e.name)}
+  for(let day=0;day<7;day++)for(const name of grouped[day]){let placed=false;for(const section of ['hypochlorite','hydrochloric','brine']){for(let r=0;r<state.weekly[k][section].length;r++){if(!state.weekly[k][section][r][day]){state.weekly[k][section][r][day]=name;addClientToList(name);placed=true;break}}if(placed)break}}
+  renderWeekly();
  }
  save();document.getElementById('ocrDialog').close()
 }
@@ -140,7 +183,12 @@ function bind(){bindTabs();
   state.weekStart=newKey;
   renderWeekly();save()
 };document.getElementById('dailyDate').onchange=e=>{state.dailyDate=e.target.value;renderDaily();save()};document.getElementById('sequenceDate').onchange=e=>{state.sequenceDate=e.target.value;renderSequence();save()};
- document.getElementById('weeklyPhotoBtn').onclick=()=>document.getElementById('weeklyPhoto').click();document.getElementById('dailyPhotoBtn').onclick=()=>document.getElementById('dailyPhoto').click();document.getElementById('weeklyPhoto').onchange=e=>{if(e.target.files[0])runOcr(e.target.files[0],'weekly');e.target.value=''};document.getElementById('dailyPhoto').onchange=e=>{if(e.target.files[0])runOcr(e.target.files[0],'daily');e.target.value=''};
+ document.getElementById('weeklyCameraBtn').onclick=()=>document.getElementById('weeklyCamera').click();
+ document.getElementById('weeklyGalleryBtn').onclick=()=>document.getElementById('weeklyGallery').click();
+ document.getElementById('dailyCameraBtn').onclick=()=>document.getElementById('dailyCamera').click();
+ document.getElementById('dailyGalleryBtn').onclick=()=>document.getElementById('dailyGallery').click();
+ const bindPhotoInput=(id,target)=>{document.getElementById(id).onchange=e=>{const file=e.target.files&&e.target.files[0];if(file)runOcr(file,target);e.target.value=''}};
+ bindPhotoInput('weeklyCamera','weekly');bindPhotoInput('weeklyGallery','weekly');bindPhotoInput('dailyCamera','daily');bindPhotoInput('dailyGallery','daily');
  document.getElementById('insertOcrLines').onclick=insertOcr;document.getElementById('copyOcr').onclick=()=>navigator.clipboard.writeText(document.getElementById('ocrText').value);
  document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(7).fill(''));renderDaily();save()};document.getElementById('addSequenceRow').onclick=()=>{state.sequence[seqKey()].push(Array(6).fill(''));renderSequence();save()};
  document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};document.getElementById('clearDaily').onclick=()=>{if(confirm('Να καθαριστεί το καθημερινό;')){state.daily[dayKey()]=blankDaily();renderDaily();save()}};document.getElementById('clearSequence').onclick=()=>{if(confirm('Να καθαριστεί η σειρά φορτώσεων;')){state.sequence[seqKey()]=blankSequence();renderSequence();save()}};
