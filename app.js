@@ -59,7 +59,7 @@ function applyRemoteState(remote){
  state={...base,...remote,lists:{...base.lists,...(remote.lists||{})},weeklyDone:remote.weeklyDone||{},sequence:remote.sequence||{}};
  localStorage.setItem(KEY,JSON.stringify(state));
  state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());
- initLists();renderWeekly();renderDaily();renderSequence();
+ initLists();renderWeekly();renderDaily();renderSequence();bindVisualViewportLayout();
  applyingRemote=false;
  setStatus('Κοινόχρηστο • ενημερώθηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
 }
@@ -336,7 +336,30 @@ function bind(){bindTabs();bindClipboardButtons();
  document.getElementById('exportData').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='programma-fortoseon-backup.json';a.click();URL.revokeObjectURL(a.href)};document.getElementById('importData').onchange=async e=>{try{state=JSON.parse(await e.target.files[0].text());save();location.reload()}catch{alert('Μη έγκυρο αρχείο.')}};document.getElementById('eraseAll').onclick=()=>{if(confirm('Οριστική διαγραφή όλων των δεδομένων;')){[KEY,...OLD_KEYS].forEach(k=>localStorage.removeItem(k));location.reload()}};
  window.addEventListener('pagehide',()=>saveLists(false));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLists(false)})
 }
-state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSequence();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
+
+
+// v2.4: στο iPhone/iPad το pinch zoom αλλάζει το visual viewport, όχι πάντα το πλάτος του body.
+// Προσαρμόζουμε το κέλυφος της εφαρμογής στο πραγματικά ορατό πλάτος και ενεργοποιούμε
+// αυτόματα τη συμπαγή εβδομάδα όταν ο χρήστης ξεζουμάρει.
+function syncVisualViewportLayout(){
+ const vv=window.visualViewport;
+ const visibleWidth=Math.max(320,Math.round(vv?.width||window.innerWidth||document.documentElement.clientWidth));
+ document.documentElement.style.setProperty('--app-visual-width',visibleWidth+'px');
+ const zoomedOut=!!(vv&&vv.scale<0.92);
+ document.body.classList.toggle('visual-zoom-out',zoomedOut);
+ const table=document.getElementById('weeklyTable');
+ if(table)table.classList.toggle('auto-fit-week',zoomedOut);
+}
+function bindVisualViewportLayout(){
+ syncVisualViewportLayout();
+ window.addEventListener('resize',syncVisualViewportLayout,{passive:true});
+ window.addEventListener('orientationchange',()=>setTimeout(syncVisualViewportLayout,120),{passive:true});
+ if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',syncVisualViewportLayout,{passive:true});
+  window.visualViewport.addEventListener('scroll',syncVisualViewportLayout,{passive:true});
+ }
+}
+state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSequence();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
 // Αφαιρεί παλιό service worker/cache ώστε το GitHub Pages να φορτώνει πάντα τη νεότερη έκδοση.
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
 if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}
