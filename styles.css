@@ -182,3 +182,30 @@ td:focus-within{position:relative;z-index:100002}
 @media(max-width:700px){
  .toolbar [data-copy-cell],.toolbar [data-paste-cell]{min-height:44px;padding:8px 10px;font-size:14px}
 }
+
+/* v2.3: κινητό, κυλιόμενες λίστες, συμπαγής εβδομάδα και πλωτά εργαλεία */
+.inline-suggestions{touch-action:pan-y;overscroll-behavior:contain;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
+.inline-suggestions button{touch-action:pan-y}
+.floating-tools{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:100010;display:flex;gap:7px;background:#1f3b5be8;padding:7px;border-radius:14px;box-shadow:0 6px 22px #0005}
+.floating-tools button{width:46px;height:46px;padding:0;font-size:21px;border-radius:10px}
+.weekly-sheet.fit-week{width:100%;min-width:760px;table-layout:fixed}
+.weekly-sheet.fit-week .row-label{width:72px;min-width:72px}
+.weekly-sheet.fit-week th:not(.row-label),.weekly-sheet.fit-week td{width:auto!important;min-width:0!important;max-width:none!important}
+.weekly-sheet.fit-week .cell-input{font-size:10px!important;padding:3px 2px!important}
+.weekly-sheet.fit-week .picker-button{min-width:22px;width:22px;font-size:14px}
+.weekly-sheet.fit-week .entry-with-check{grid-template-columns:minmax(0,1fr) 22px 27px}
+.weekly-sheet.fit-week .done-check{min-width:27px}.weekly-sheet.fit-week .done-check span{width:20px;height:20px;font-size:13px}
+@media(max-width:700px){
+  body{width:100%;overflow-x:hidden}
+  .topbar,.tabs,main{width:100%;max-width:none}
+  .floating-tools{right:8px;bottom:calc(8px + env(safe-area-inset-bottom))}
+  .inline-suggestions{max-height:55vh!important;overflow-y:scroll!important}
+  .weekly-sheet.fit-week{min-width:100%;width:100%;font-size:7px}
+  .weekly-sheet.fit-week .row-label{width:46px;min-width:46px;font-size:6px}
+  .weekly-sheet.fit-week th{font-size:6px;padding:2px 1px}
+  .weekly-sheet.fit-week tr.weekly-entry-row td{height:35px}
+  .weekly-sheet.fit-week tr.weekly-entry-row .client-name-input{height:34px;min-height:34px;font-size:7px!important;line-height:1.05;padding:2px 1px!important}
+  .weekly-sheet.fit-week .picker-button{min-width:15px;width:15px;font-size:10px}
+  .weekly-sheet.fit-week .entry-with-check{grid-template-columns:minmax(0,1fr) 15px 18px}
+  .weekly-sheet.fit-week .done-check{min-width:18px}.weekly-sheet.fit-week .done-check span{width:15px;height:15px;font-size:9px}
+}
