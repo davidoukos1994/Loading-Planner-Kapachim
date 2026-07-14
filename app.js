@@ -11,7 +11,7 @@ const SALT_OPTIONS=['ΕΛΛΗΝΙΚΕΣ ΑΛΥΚΕΣ','ΔΑΚΑΡΙΔΗΣ'];
 let state=loadState(), selectedInputs=[], ocrTarget='weekly', ocrPending=[];
 
 // Κοινόχρηστος συγχρονισμός Supabase (μόνο δεδομένα, ποτέ φωτογραφίες).
-const SUPABASE_URL='https://ccpthfogsrenwlulkabf.supabase.co';
+const SUPABASE_URL='https://jxuxrpemexgiqofjprms.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_C1umeeMdCahuDbDhFZFa1g_CpFtFj6i';
 const SHARED_ROW_ID='shared-loading-planner';
 const DEVICE_ID_KEY='loadingPlanner.deviceId';
