@@ -118,16 +118,26 @@ function makeInput(value,onChange,classes='',listKey=null,withPicker=false,optio
  if(!isClient)input.type='text';else{input.rows=2;input.wrap='soft';input.setAttribute('aria-label','ΟΝΟΜΑ ΠΕΛΑΤΗ')}
  input.className='cell-input '+classes+(isClient?' client-name-input':'');input.dataset.listKey=listKey||'';input.value=upper(value);input.autocomplete='off';input.autocapitalize='characters';input.spellcheck=false;
  const preview=document.createElement('div');preview.className='inline-preview';const menu=document.createElement('div');menu.className='inline-suggestions';
- function close(){menu.classList.remove('open');menu.innerHTML='';preview.textContent=''}
- function choose(hit){input.value=hit;onChange(hit);if(options.addToClients&&listKey==='clients')addClientToList(hit);save();close();input.focus()}
- function openAll(){if(!listKey)return;const hits=matches('',listKey,true);menu.innerHTML='';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.addEventListener('pointerdown',e=>e.preventDefault());b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();choose(hit)});b.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();choose(hit)},{passive:false});menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
- input.addEventListener('input',()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();close()});
+ let activeIndex=-1,currentHits=[];
+ function close(){menu.classList.remove('open');menu.innerHTML='';preview.textContent='';activeIndex=-1;currentHits=[]}
+ function choose(hit){input.value=upper(hit);onChange(input.value);if(options.addToClients&&listKey==='clients')addClientToList(input.value);save();close();input.focus();try{input.setSelectionRange(input.value.length,input.value.length)}catch{}}
+ function renderHits(hits){currentHits=hits;activeIndex=-1;menu.innerHTML='';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.tabIndex=-1;b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();choose(hit)});menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
+ function updateActive(){[...menu.children].forEach((b,i)=>b.classList.toggle('active',i===activeIndex));if(activeIndex>=0)menu.children[activeIndex]?.scrollIntoView({block:'nearest'})}
+ function openAll(){if(!listKey)return;renderHits(matches('',listKey,true))}
+ function openFiltered(){if(!listKey)return;const q=input.value.trim();if(!q){close();return}const hits=matches(q,listKey,false);renderHits(hits);if(hits.length&&upper(hits[0]).startsWith(upper(q))&&upper(hits[0])!==upper(q))preview.textContent=hits[0]}
+ input.addEventListener('input',()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();openFiltered()});
+ input.addEventListener('paste',()=>setTimeout(()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();openFiltered()},0));
  input.addEventListener('focus',()=>{selectCell(input);close()});
- input.addEventListener('click',()=>close());
- input.addEventListener('keydown',e=>{if(e.key==='Enter'&&isClient)e.preventDefault();if(e.key==='Escape')close()});
- input.addEventListener('blur',()=>{setTimeout(close,180);if(options.addToClients&&listKey==='clients')addClientToList(input.value)});
+ input.addEventListener('click',()=>{selectCell(input)});
+ input.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){close();return}
+  if(menu.classList.contains('open')&&(e.key==='ArrowDown'||e.key==='ArrowUp')){e.preventDefault();activeIndex=e.key==='ArrowDown'?Math.min(activeIndex+1,currentHits.length-1):Math.max(activeIndex-1,0);updateActive();return}
+  if(e.key==='Enter'&&menu.classList.contains('open')&&currentHits.length){e.preventDefault();choose(currentHits[activeIndex>=0?activeIndex:0]);return}
+  if(e.key==='Enter'&&isClient)e.preventDefault();
+ });
+ input.addEventListener('blur',()=>{setTimeout(close,220);if(options.addToClients&&listKey==='clients')addClientToList(input.value)});
  wrap.append(input,preview);
- if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.setAttribute('aria-label','Άνοιγμα λίστας');p.addEventListener('pointerdown',e=>e.preventDefault());p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();input.focus();openAll()});wrap.appendChild(p)}
+ if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.setAttribute('aria-label','Άνοιγμα λίστας');p.addEventListener('pointerdown',e=>e.preventDefault());p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();selectCell(input);input.focus();openAll()});wrap.appendChild(p)}
  wrap.appendChild(menu);return {wrap,input}
 }
 function weeklyTotal(){const w=state.weekly[weekKey()]||blankWeekly();return WEEK_PRODUCT_SECTIONS.reduce((t,s)=>t+w[s.key].flat().filter(Boolean).length,0)}
@@ -142,8 +152,8 @@ function renderWeekly(){
 function normalizeRows(rows,count){const out=Array.isArray(rows)?rows:[];return out.map(r=>Array.from({length:count},(_,i)=>upper(r?.[i]||'')))}
 function renderDaily(){state.dailyDate=state.dailyDate||iso(new Date());document.getElementById('dailyDate').value=state.dailyDate;const k=dayKey();if(!state.daily[k])state.daily[k]=blankDaily();state.daily[k]=normalizeRows(state.daily[k],7);const head=document.getElementById('dailyHead');head.innerHTML='';DAILY_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('dailyBody');body.innerHTML='';state.daily[k].forEach((row,ri)=>{const tr=document.createElement('tr');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');const keys=['clients','tanks','carriers',null,null,null,'other'],key=keys[ci];const x=makeInput(v,val=>state.daily[k][ri][ci]=val,(ci===0?'ocr-client-input ':'')+(ci===3&&/24|25/.test(v)?'yellow':''),key,!!key);td.appendChild(x.wrap);tr.appendChild(td)});body.appendChild(tr)})}
 function renderSequence(){state.sequenceDate=state.sequenceDate||iso(new Date());document.getElementById('sequenceDate').value=state.sequenceDate;const k=seqKey();if(!state.sequence[k])state.sequence[k]=blankSequence();state.sequence[k]=normalizeRows(state.sequence[k],6);const head=document.getElementById('sequenceHead');head.innerHTML='';SEQUENCE_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('sequenceBody');body.innerHTML='';state.sequence[k].forEach((row,ri)=>{const tr=document.createElement('tr');if(row[5]==='ΝΑΙ')tr.classList.add('completed-row');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');if(ci===5){const lab=document.createElement('label');lab.className='sequence-complete';const cb=document.createElement('input');cb.type='checkbox';cb.checked=v==='ΝΑΙ';cb.onchange=()=>{state.sequence[k][ri][ci]=cb.checked?'ΝΑΙ':'';tr.classList.toggle('completed-row',cb.checked);save()};lab.appendChild(cb);td.appendChild(lab)}else{const key=ci===0?'tanks':null;const x=makeInput(v,val=>state.sequence[k][ri][ci]=val,'',key,!!key);td.appendChild(x.wrap)}tr.appendChild(td)});body.appendChild(tr)})}
-function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))];document.getElementById(k+'List').value=state.lists[k].join('\n')}}
-function saveLists(show=false){for(const k of ['clients','tanks','carriers','other'])state.lists[k]=[...new Set(document.getElementById(k+'List').value.split(/\r?\n/).map(x=>upper(x.trim())).filter(Boolean))];save();if(show)alert('Οι λίστες αποθηκεύτηκαν.')}
+function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}}
+function saveLists(show=false){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set(document.getElementById(k+'List').value.split(/\r?\n/).map(x=>upper(x.trim())).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}save();if(show)alert('Οι λίστες αποθηκεύτηκαν αλφαβητικά.')}
 const autoLists=debounce(()=>saveLists(false));
 function bindTabs(){document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.view).classList.add('active')})}
 function normalizeMatch(v){return upper(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-ZΑ-Ω0-9]+/g,' ').trim()}
@@ -228,7 +238,17 @@ function insertOcr(){
  }
  save();document.getElementById('ocrDialog').close()
 }
-function bind(){bindTabs();
+async function copySelectedCell(){
+ const input=selectedInputs[0];if(!input){alert('Πάτησε πρώτα σε ένα κελί.');return}
+ try{await navigator.clipboard.writeText(input.value||'');setStatus('Αντιγράφηκε το κελί','online')}catch{input.focus();input.select();document.execCommand('copy');setStatus('Αντιγράφηκε το κελί','online')}
+}
+async function pasteSelectedCell(){
+ const input=selectedInputs[0];if(!input){alert('Πάτησε πρώτα σε ένα κελί.');return}
+ try{const text=await navigator.clipboard.readText();input.value=upper(text.replace(/\r?\n+/g,' ').trim());input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();setStatus('Έγινε επικόλληση','online')}
+ catch{alert('Ο browser δεν επέτρεψε αυτόματη επικόλληση. Κράτησε πατημένο το κελί και επίλεξε «Επικόλληση».')}
+}
+function bindClipboardButtons(){document.querySelectorAll('[data-copy-cell]').forEach(b=>b.onclick=copySelectedCell);document.querySelectorAll('[data-paste-cell]').forEach(b=>b.onclick=pasteSelectedCell)}
+function bind(){bindTabs();bindClipboardButtons();
  fillConnectionSettings();
  const urlInput=document.getElementById('settingsSupabaseUrl'),keyInput=document.getElementById('settingsSupabaseKey');
  document.getElementById('toggleSupabaseKey').onclick=()=>{const hidden=keyInput.type==='password';keyInput.type=hidden?'text':'password';document.getElementById('toggleSupabaseKey').textContent=hidden?'Απόκρυψη':'Εμφάνιση'};

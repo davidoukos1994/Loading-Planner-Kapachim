@@ -172,3 +172,13 @@ td:focus-within{position:relative;z-index:100002}
 .connection-result[data-kind="error"]{background:#fde7e7;border-color:#dc8d8d;color:#8b1e1e}
 .connection-result[data-kind="testing"]{background:#fff4cf;border-color:#dec061;color:#6b5200}
 @media(max-width:700px){.settings-card{padding:14px}.key-row{grid-template-columns:1fr}.key-row button{width:100%}.settings-field>input,.key-row input{font-size:16px}}
+
+
+/* v2.1: λειτουργικό autocomplete, αντιγραφή/επικόλληση και αλφαβητικές λίστες */
+.cell-input{-webkit-user-select:text;user-select:text;touch-action:manipulation}
+.inline-preview{opacity:.42}
+.inline-suggestions button{cursor:pointer;-webkit-user-select:none;user-select:none}
+.toolbar [data-copy-cell],.toolbar [data-paste-cell]{white-space:nowrap}
+@media(max-width:700px){
+ .toolbar [data-copy-cell],.toolbar [data-paste-cell]{min-height:44px;padding:8px 10px;font-size:14px}
+}
