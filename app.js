@@ -208,11 +208,53 @@ function extractDailyClients(text){
  if(!out.length){for(const line of raw){const c=bestClientInLine(line);if(c&&out[out.length-1]!==c)out.push(c)}}
  return out
 }
+function loadImageBitmapFromFile(file){
+ return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{URL.revokeObjectURL(img.src);resolve(img)};img.onerror=()=>reject(new Error('Δεν μπόρεσε να ανοίξει η εικόνα.'));img.src=URL.createObjectURL(file)})
+}
+function makeOcrCanvas(img,rotation=0,mode='contrast'){
+ const maxSide=2400,scale=Math.min(2.2,maxSide/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+ const sw=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)),sh=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+ const rot=((rotation%360)+360)%360,c=document.createElement('canvas');
+ c.width=(rot===90||rot===270)?sh:sw;c.height=(rot===90||rot===270)?sw:sh;
+ const ctx=c.getContext('2d',{willReadFrequently:true});ctx.save();
+ if(rot===90){ctx.translate(c.width,0);ctx.rotate(Math.PI/2)}else if(rot===180){ctx.translate(c.width,c.height);ctx.rotate(Math.PI)}else if(rot===270){ctx.translate(0,c.height);ctx.rotate(-Math.PI/2)}
+ ctx.drawImage(img,0,0,sw,sh);ctx.restore();
+ if(mode!=='plain'){
+  const im=ctx.getImageData(0,0,c.width,c.height),d=im.data;
+  for(let i=0;i<d.length;i+=4){let g=.299*d[i]+.587*d[i+1]+.114*d[i+2];if(mode==='threshold')g=g>176?255:0;else g=Math.max(0,Math.min(255,(g-128)*1.65+128));d[i]=d[i+1]=d[i+2]=g}
+  ctx.putImageData(im,0,0)
+ }
+ return c
+}
+function countRecognizedClients(text){let count=0;for(const line of String(text||'').split(/\r?\n/))if(bestClientInLine(line))count++;return count}
+function ocrResultScore(result,target){
+ const text=result?.data?.text||'';let score=countRecognizedClients(text)*12;
+ if(target==='weekly')score+=(text.match(/\b[0-3]?\d[\/\-.][01]?\d(?:[\/\-.]\d{2,4})?/g)||[]).length*4;
+ else score+=(normalizeMatch(text).match(/ΠΕΛΑΤ|PELATH/g)||[]).length*3;
+ return score
+}
+async function recognizeBestPhoto(file,target,onProgress){
+ const img=await loadImageBitmapFromFile(file),variants=[
+  {rotation:0,mode:'contrast',label:'βελτίωση εικόνας'},
+  {rotation:90,mode:'contrast',label:'περιστροφή 90°'},
+  {rotation:270,mode:'contrast',label:'περιστροφή 270°'},
+  {rotation:0,mode:'threshold',label:'έντονη αντίθεση'}
+ ];
+ let best=null,bestScore=-1;
+ for(let i=0;i<variants.length;i++){
+  const v=variants[i],canvas=makeOcrCanvas(img,v.rotation,v.mode);
+  const r=await Tesseract.recognize(canvas,'ell+eng',{logger:m=>{if(m.progress)onProgress((i+m.progress)/variants.length,`${v.label}: ${m.status||'Ανάγνωση'}`)}},{tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});
+  const score=ocrResultScore(r,target);if(score>bestScore){best=r;bestScore=score}
+  if(score>=((target==='weekly'?10:7)*12))break;
+ }
+ return best
+}
 async function runOcr(file,target){
  ocrTarget=target||'weekly';ocrPending=[];
  const dlg=document.getElementById('ocrDialog'),bar=document.getElementById('ocrBar'),msg=document.getElementById('ocrMessage'),txt=document.getElementById('ocrText'),insert=document.getElementById('insertOcrLines');
  dlg.showModal();bar.style.width='0';txt.value='';insert.textContent=ocrTarget==='daily'?'Πέρασμα πελατών στη στήλη ΠΕΛΑΤΗΣ':'Πέρασμα πελατών στις σωστές ημέρες';
- try{const r=await Tesseract.recognize(file,'ell+eng',{logger:m=>{if(m.progress){bar.style.width=Math.round(m.progress*100)+'%';msg.textContent=(m.status||'Ανάγνωση')+' '+Math.round(m.progress*100)+'%'}}});
+ try{
+  const r=await recognizeBestPhoto(file,ocrTarget,(progress,status)=>{bar.style.width=Math.round(progress*100)+'%';msg.textContent=status+' '+Math.round(progress*100)+'%'});
   if(ocrTarget==='daily'){
    const found=extractDailyClients(r.data.text);ocrPending=found.map(name=>({name}));txt.value=found.join('\n');
   }else{
@@ -221,7 +263,7 @@ async function runOcr(file,target){
    ocrPending=found;const dayNames=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];
    txt.value=found.map(x=>`${dayNames[x.dayIndex]||''}: ${x.name}`).join('\n');
   }
-  msg.textContent=ocrPending.length?`Βρέθηκαν ${ocrPending.length} πελάτες. Θα περαστούν μόνο ονόματα πελατών.`:'Δεν βρέθηκε πελάτης από τη λίστα.'
+  bar.style.width='100%';msg.textContent=ocrPending.length?`Βρέθηκαν ${ocrPending.length} πελάτες. Έλεγξέ τους πριν το πέρασμα.`:'Δεν βρέθηκε πελάτης από τη λίστα. Δοκίμασε πιο κοντινή και ευθεία φωτογραφία.'
  }catch(e){msg.textContent='Αποτυχία: '+e.message}
 }
 function insertOcr(){
