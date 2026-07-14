@@ -11,9 +11,20 @@ const SALT_OPTIONS=['ΕΛΛΗΝΙΚΕΣ ΑΛΥΚΕΣ','ΔΑΚΑΡΙΔΗΣ'];
 let state=loadState(), selectedInputs=[], ocrTarget='weekly', ocrPending=[];
 
 // Κοινόχρηστος συγχρονισμός Supabase (μόνο δεδομένα, ποτέ φωτογραφίες).
-const SUPABASE_URL='https://jxuxrpemexgiqofjprms.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY='sb_publishable_C1umeeMdCahuDbDhFZFa1g_CpFtFj6i';
+const DEFAULT_SUPABASE_URL='https://jxuxrpemexgiqofjprms.supabase.co';
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY='sb_publishable_C1umeeMdCahuDbDhFZFa1g_CpFtFj6i';
+const CONNECTION_SETTINGS_KEY='loadingPlanner.connection.v1';
 const SHARED_ROW_ID='shared-loading-planner';
+function getConnectionSettings(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(CONNECTION_SETTINGS_KEY)||'{}');
+  return {url:(saved.url||DEFAULT_SUPABASE_URL).trim(),key:(saved.key||DEFAULT_SUPABASE_PUBLISHABLE_KEY).trim()};
+ }catch{return {url:DEFAULT_SUPABASE_URL,key:DEFAULT_SUPABASE_PUBLISHABLE_KEY}}
+}
+function storeConnectionSettings(url,key){localStorage.setItem(CONNECTION_SETTINGS_KEY,JSON.stringify({url:String(url||'').trim(),key:String(key||'').trim()}))}
+function setConnectionResult(text,kind='idle'){const el=document.getElementById('connectionResult');if(!el)return;el.textContent=text;el.dataset.kind=kind}
+function fillConnectionSettings(){const cfg=getConnectionSettings();const u=document.getElementById('settingsSupabaseUrl'),k=document.getElementById('settingsSupabaseKey');if(u)u.value=cfg.url;if(k)k.value=cfg.key}
+
 const DEVICE_ID_KEY='loadingPlanner.deviceId';
 const DEVICE_ID=localStorage.getItem(DEVICE_ID_KEY)||((crypto.randomUUID&&crypto.randomUUID())||('device-'+Date.now()+'-'+Math.random().toString(16).slice(2)));
 localStorage.setItem(DEVICE_ID_KEY,DEVICE_ID);
@@ -52,10 +63,15 @@ function applyRemoteState(remote){
  applyingRemote=false;
  setStatus('Κοινόχρηστο • ενημερώθηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
 }
-async function initSharedSync(){
- if(!window.supabase?.createClient){setStatus('Αποθηκεύτηκε τοπικά • δεν φορτώθηκε ο συγχρονισμός','error');return}
+async function initSharedSync(showResult=false){
+ syncReady=false;
+ if(realtimeChannel&&supabaseClient){try{await supabaseClient.removeChannel(realtimeChannel)}catch{}}
+ realtimeChannel=null;supabaseClient=null;
+ if(!window.supabase?.createClient){setStatus('Αποθηκεύτηκε τοπικά • δεν φορτώθηκε ο συγχρονισμός','error');setConnectionResult('🔴 Δεν φορτώθηκε η βιβλιοθήκη Supabase. Έλεγξε τη σύνδεση internet.','error');return false}
+ const cfg=getConnectionSettings();
+ if(!cfg.url||!cfg.key){setStatus('Αποθηκεύτηκε τοπικά • λείπουν ρυθμίσεις','error');setConnectionResult('🔴 Συμπλήρωσε Project URL και publishable key.','error');return false}
  try{
-  supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  supabaseClient=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:false,autoRefreshToken:false}});
   setStatus('Σύνδεση κοινής χρήσης…','syncing');
   const {data,error}=await supabaseClient.from('loading_planner_state').select('data,updated_by,updated_at').eq('id',SHARED_ROW_ID).maybeSingle();
   if(error)throw error;
@@ -64,8 +80,10 @@ async function initSharedSync(){
   realtimeChannel=supabaseClient.channel('loading-planner-shared')
    .on('postgres_changes',{event:'*',schema:'public',table:'loading_planner_state',filter:`id=eq.${SHARED_ROW_ID}`},payload=>{
     const row=payload.new;if(!row||row.updated_by===DEVICE_ID)return;applyRemoteState(row.data);
-   }).subscribe(status=>{if(status==='SUBSCRIBED')setStatus('Κοινόχρηστο • online','online')});
- }catch(err){console.error('Supabase init',err);setStatus('Αποθηκεύτηκε τοπικά • έλεγξε το Supabase setup','error')}
+   }).subscribe(status=>{if(status==='SUBSCRIBED'){setStatus('Κοινόχρηστο • online','online');setConnectionResult('🟢 Συνδεδεμένο με Supabase — ο συγχρονισμός είναι ενεργός.','online')}});
+  setConnectionResult('🟢 Η σύνδεση και η ανάγνωση της κοινόχρηστης βάσης λειτουργούν.','online');
+  return true;
+ }catch(err){console.error('Supabase init',err);setStatus('Αποθηκεύτηκε τοπικά • έλεγξε τις ρυθμίσεις','error');setConnectionResult('🔴 Αποτυχία σύνδεσης: '+(err?.message||'Άγνωστο σφάλμα'),'error');return false}
 }
 
 function debounce(fn,ms=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}} const autosave=debounce(save);
@@ -211,6 +229,12 @@ function insertOcr(){
  save();document.getElementById('ocrDialog').close()
 }
 function bind(){bindTabs();
+ fillConnectionSettings();
+ const urlInput=document.getElementById('settingsSupabaseUrl'),keyInput=document.getElementById('settingsSupabaseKey');
+ document.getElementById('toggleSupabaseKey').onclick=()=>{const hidden=keyInput.type==='password';keyInput.type=hidden?'text':'password';document.getElementById('toggleSupabaseKey').textContent=hidden?'Απόκρυψη':'Εμφάνιση'};
+ document.getElementById('saveConnectionSettings').onclick=async()=>{storeConnectionSettings(urlInput.value,keyInput.value);setConnectionResult('Έλεγχος σύνδεσης…','testing');await initSharedSync(true)};
+ document.getElementById('testConnection').onclick=async()=>{storeConnectionSettings(urlInput.value,keyInput.value);setConnectionResult('Έλεγχος σύνδεσης…','testing');await initSharedSync(true)};
+ document.getElementById('resetConnectionSettings').onclick=async()=>{storeConnectionSettings(DEFAULT_SUPABASE_URL,DEFAULT_SUPABASE_PUBLISHABLE_KEY);fillConnectionSettings();setConnectionResult('Έγινε επαναφορά. Έλεγχος σύνδεσης…','testing');await initSharedSync(true)};
  document.getElementById('weekStart').onchange=e=>{
   const oldKey=weekKey();
   const currentWeekly=normalizeWeekly(state.weekly[oldKey]);

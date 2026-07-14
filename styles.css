@@ -160,3 +160,15 @@ td:focus-within{position:relative;z-index:100002}
 .status[data-kind="syncing"]{background:#fff3cd;color:#6b5200;border-color:#e6c85c}
 .status[data-kind="error"]{background:#fde2e2;color:#8b1e1e;border-color:#df8c8c}
 .status[data-kind="local"]{background:#e8eef5;color:#34495e}
+
+/* v2.0: ρυθμίσεις και έλεγχος κοινόχρηστης σύνδεσης */
+.settings-card{max-width:820px;margin:0 auto}
+.settings-field{display:block;font-weight:800;margin:14px 0 6px}
+.settings-field>input,.key-row input{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid #aeb8c2;border-radius:9px;font-size:15px;background:#fff}
+.key-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.key-row button{min-height:44px}
+.connection-result{margin-top:14px;padding:12px 14px;border:1px solid #b7c1cb;border-radius:10px;background:#eef2f5;font-weight:800;overflow-wrap:anywhere}
+.connection-result[data-kind="online"]{background:#e2f6e8;border-color:#72bb87;color:#145b2d}
+.connection-result[data-kind="error"]{background:#fde7e7;border-color:#dc8d8d;color:#8b1e1e}
+.connection-result[data-kind="testing"]{background:#fff4cf;border-color:#dec061;color:#6b5200}
+@media(max-width:700px){.settings-card{padding:14px}.key-row{grid-template-columns:1fr}.key-row button{width:100%}.settings-field>input,.key-row input{font-size:16px}}

@@ -9,11 +9,11 @@
   <meta http-equiv="Expires" content="0" />
   <title>Πρόγραμμα Φορτώσεων</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=1.5.0" />
+  <link rel="stylesheet" href="styles.css?v=2.0.0" />
 </head>
 <body>
 <header class="topbar">
-  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v1.5.1</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v2.0</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
   <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
 </header>
 <nav class="tabs" aria-label="Κύρια πλοήγηση">
@@ -22,6 +22,7 @@
   <button class="tab" data-view="sequence">Σειρά φορτώσεων</button>
   <button class="tab" data-view="lists">Λίστες / Autocomplete</button>
   <button class="tab" data-view="backup">Αντίγραφο ασφαλείας</button>
+  <button class="tab" data-view="settings">Ρυθμίσεις</button>
 </nav>
 <main>
   <section id="weekly" class="view active">
@@ -69,7 +70,28 @@
   </section>
 
   <section id="backup" class="view"><div class="card narrow"><h2>Αντίγραφο ασφαλείας δεδομένων</h2><p>Τα προγράμματα αποθηκεύονται τοπικά και συγχρονίζονται στην κοινόχρηστη βάση Supabase.</p><div class="stack"><button id="exportData">Λήψη αντιγράφου (.json)</button><label class="file-label">Επαναφορά από αρχείο<input type="file" id="importData" accept="application/json" hidden /></label><button id="eraseAll" class="danger">Διαγραφή όλων των δεδομένων</button></div></div></section>
+
+  <section id="settings" class="view">
+    <div class="card settings-card">
+      <h2>Ρυθμίσεις κοινής χρήσης</h2>
+      <p>Οι ρυθμίσεις είναι ήδη συμπληρωμένες. Συνήθως δεν χρειάζεται να τις αλλάξεις ξανά. Οι φωτογραφίες δεν αποθηκεύονται στο Supabase.</p>
+      <label class="settings-field">Supabase Project URL
+        <input id="settingsSupabaseUrl" type="url" autocomplete="off" spellcheck="false" />
+      </label>
+      <label class="settings-field">Publishable key
+        <div class="key-row"><input id="settingsSupabaseKey" type="password" autocomplete="off" spellcheck="false" /><button type="button" id="toggleSupabaseKey">Εμφάνιση</button></div>
+      </label>
+      <div class="toolbar">
+        <button id="saveConnectionSettings">Αποθήκευση & σύνδεση</button>
+        <button id="testConnection">Έλεγχος σύνδεσης</button>
+        <button id="resetConnectionSettings" class="secondary">Επαναφορά προεπιλογών</button>
+      </div>
+      <div id="connectionResult" class="connection-result" data-kind="idle">Δεν έχει γίνει ακόμη έλεγχος.</div>
+      <p class="hint">Για τις επόμενες αναβαθμίσεις θα ανεβάζεις μόνο τα αρχεία του νέου ZIP στο GitHub. Το Supabase θα χρειαστεί ξανά μόνο αν προστεθεί νέα βάση ή νέος πίνακας.</p>
+    </div>
+  </section>
+
 </main>
 <dialog id="ocrDialog"><form method="dialog" class="ocr-panel"><div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div><p>Η εικόνα δεν αποθηκεύεται. Η εφαρμογή αναζητά μόνο ονόματα που υπάρχουν στη λίστα πελατών. Στο καθημερινό συμπληρώνει αποκλειστικά τη στήλη ΠΕΛΑΤΗΣ και αφήνει όλα τα υπόλοιπα πεδία κενά.</p><div class="progress"><div id="ocrBar"></div></div><div id="ocrMessage">Προετοιμασία…</div><textarea id="ocrText" rows="16"></textarea><div class="toolbar"><button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button><button type="button" id="copyOcr">Αντιγραφή κειμένου</button><button value="cancel">Κλείσιμο</button></div></form></dialog>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=1.5.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=2.0.0"></script>
 </body></html>
