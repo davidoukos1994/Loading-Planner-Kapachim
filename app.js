@@ -5,7 +5,8 @@ const WEEK_PRODUCT_SECTIONS=[
  {key:'brine',label:'ΑΛΜΗ',rows:2,cls:'product-brine'},
  {key:'salt',label:'ΑΛΑΤΙ',rows:3,cls:'product-salt'}
 ];
-const DAILY_HEADERS=['#','ΠΕΛΑΤΗΣ','ΑΠΟ ΔΕΞΑΜΕΝΗ','ΜΕΤΑΦΟΡΕΑΣ','ΠΟΣΟΤΗΤΑ','ΗΜ/ΝΙΑ - ΒΑΡΔΙΑ','ΩΡΑ ΦΟΡΤΩΣΗΣ','ΥΠΕΥΘΥΝΟΣ ΦΟΡΤΩΣΗΣ'];
+const DAILY_HEADERS=['#','ΠΕΛΑΤΗΣ','ΑΠΟ ΔΕΞΑΜΕΝΗ','ΠΟΣΟΤΗΤΑ','ΗΜ/ΝΙΑ - ΒΑΡΔΙΑ','ΩΡΑ ΦΟΡΤΩΣΗΣ','ΥΠΕΥΘΥΝΟΣ ΦΟΡΤΩΣΗΣ'];
+const SHIFT_OPTIONS=['','ΠΡΩΙ','ΑΠΟΓΕΥΜΑ','ΒΡΑΔΥ'];
 const SEQUENCE_HEADERS=['#','ΔΕΞΑΜΕΝΗ','ΑΡΧΙΚΗ ΣΤΑΘΜΗ','ΤΕΛΙΚΗ ΣΤΑΘΜΗ','ΕΝΕΡΓΑ','ΣΟΔΑ','ΟΛΟΚΛΗΡΩΘΗΚΕ'];
 const SALT_OPTIONS=['ΕΛΛΗΝΙΚΕΣ ΑΛΥΚΕΣ','ΔΑΚΑΡΙΔΗΣ'];
 let state=loadState(), selectedInputs=[], ocrTarget='weekly', ocrPending=[];
@@ -31,8 +32,26 @@ localStorage.setItem(DEVICE_ID_KEY,DEVICE_ID);
 let supabaseClient=null, syncReady=false, applyingRemote=false, remoteTimer=null, realtimeChannel=null;
 
 
-function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},sequenceDate:'',sequence:{},lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
-function loadState(){try{let raw=localStorage.getItem(KEY);if(!raw)for(const k of OLD_KEYS){raw=localStorage.getItem(k);if(raw)break}const p=raw?JSON.parse(raw):{},b=defaultState();return {...b,...p,lists:{...b.lists,...(p.lists||{})},weeklyDone:p.weeklyDone||{},sequence:p.sequence||{}}}catch{return defaultState()}}
+function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},dailySchemaVersion:2,sequenceDate:'',sequence:{},lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
+function migrateDailyState(s){
+ if(s.dailySchemaVersion===2)return s;
+ const migrated={};
+ for(const [date,rows] of Object.entries(s.daily||{})){
+  migrated[date]=(Array.isArray(rows)?rows:[]).map(r=>{
+   const a=Array.isArray(r)?r:[];
+   // Παλιά σειρά: πελάτης, δεξαμενή, μεταφορέας, ποσότητα, ημερομηνία/βάρδια, ώρα, υπεύθυνος.
+   const dateShift=String(a[4]||'').trim();
+   let dateValue='',shift='';
+   const isoMatch=dateShift.match(/(\d{4}-\d{2}-\d{2})/);
+   if(isoMatch)dateValue=isoMatch[1];
+   const upperValue=upper(dateShift);
+   if(upperValue.includes('ΠΡΩ'))shift='ΠΡΩΙ';else if(upperValue.includes('ΑΠΟΓ'))shift='ΑΠΟΓΕΥΜΑ';else if(upperValue.includes('ΒΡΑ')||upperValue.includes('ΝΥΧ'))shift='ΒΡΑΔΥ';
+   return [upper(a[0]||''),upper(a[1]||''),upper(a[3]||''),dateValue,shift,upper(a[5]||''),upper(a[6]||'')];
+  });
+ }
+ s.daily=migrated;s.dailySchemaVersion=2;return s
+}
+function loadState(){try{let raw=localStorage.getItem(KEY);if(!raw)for(const k of OLD_KEYS){raw=localStorage.getItem(k);if(raw)break}const p=raw?JSON.parse(raw):{},b=defaultState();return migrateDailyState({...b,...p,dailySchemaVersion:p.dailySchemaVersion||1,lists:{...b.lists,...(p.lists||{})},weeklyDone:p.weeklyDone||{},sequence:p.sequence||{}})}catch{return defaultState()}}
 function setStatus(text,kind=''){const el=document.getElementById('saveStatus');if(!el)return;el.textContent=text;el.dataset.kind=kind}
 function save(){
  localStorage.setItem(KEY,JSON.stringify(state));
@@ -56,10 +75,10 @@ function applyRemoteState(remote){
  if(!remote||typeof remote!=='object')return;
  applyingRemote=true;
  const base=defaultState();
- state={...base,...remote,lists:{...base.lists,...(remote.lists||{})},weeklyDone:remote.weeklyDone||{},sequence:remote.sequence||{}};
+ state=migrateDailyState({...base,...remote,dailySchemaVersion:remote.dailySchemaVersion||1,lists:{...base.lists,...(remote.lists||{})},weeklyDone:remote.weeklyDone||{},sequence:remote.sequence||{}});
  localStorage.setItem(KEY,JSON.stringify(state));
  state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());
- initLists();renderWeekly();renderDaily();renderSequence();
+ initLists();renderWeekly();renderDaily();renderSequence();bindVisualViewportLayout();
  applyingRemote=false;
  setStatus('Κοινόχρηστο • ενημερώθηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
 }
@@ -111,6 +130,10 @@ function addClientToList(value){
   save();
  }
 }
+function closeAllSuggestionMenus(except=null){
+ document.querySelectorAll('.inline-suggestions.open').forEach(m=>{if(m!==except){m.classList.remove('open');m.innerHTML=''}});
+ document.querySelectorAll('.inline-preview').forEach(p=>{if(!except||p.parentElement?.querySelector('.inline-suggestions')!==except)p.textContent=''});
+}
 function makeInput(value,onChange,classes='',listKey=null,withPicker=false,options={}){
  const wrap=document.createElement('div');wrap.className='autocomplete-wrap'+(withPicker?'':' no-picker');
  const isClient=listKey==='clients';
@@ -121,13 +144,13 @@ function makeInput(value,onChange,classes='',listKey=null,withPicker=false,optio
  let activeIndex=-1,currentHits=[];
  function close(){menu.classList.remove('open');menu.innerHTML='';preview.textContent='';activeIndex=-1;currentHits=[]}
  function choose(hit){input.value=upper(hit);onChange(input.value);if(options.addToClients&&listKey==='clients')addClientToList(input.value);save();close();input.focus();try{input.setSelectionRange(input.value.length,input.value.length)}catch{}}
- function renderHits(hits){currentHits=hits;activeIndex=-1;menu.innerHTML='';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.tabIndex=-1;b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();choose(hit)});menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
+ function renderHits(hits){closeAllSuggestionMenus(menu);currentHits=hits;activeIndex=-1;menu.innerHTML='';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.tabIndex=-1;b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();choose(hit)});menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
  function updateActive(){[...menu.children].forEach((b,i)=>b.classList.toggle('active',i===activeIndex));if(activeIndex>=0)menu.children[activeIndex]?.scrollIntoView({block:'nearest'})}
  function openAll(){if(!listKey)return;renderHits(matches('',listKey,true))}
  function openFiltered(){if(!listKey)return;const q=input.value.trim();if(!q){close();return}const hits=matches(q,listKey,false);renderHits(hits);if(hits.length&&upper(hits[0]).startsWith(upper(q))&&upper(hits[0])!==upper(q))preview.textContent=hits[0]}
  input.addEventListener('input',()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();openFiltered()});
  input.addEventListener('paste',()=>setTimeout(()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();openFiltered()},0));
- input.addEventListener('focus',()=>{selectCell(input);close()});
+ input.addEventListener('focus',()=>{closeAllSuggestionMenus(menu);selectCell(input);close()});
  input.addEventListener('click',()=>{selectCell(input)});
  input.addEventListener('keydown',e=>{
   if(e.key==='Escape'){close();return}
@@ -137,23 +160,47 @@ function makeInput(value,onChange,classes='',listKey=null,withPicker=false,optio
  });
  input.addEventListener('blur',()=>{setTimeout(close,220);if(options.addToClients&&listKey==='clients')addClientToList(input.value)});
  wrap.append(input,preview);
- if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.setAttribute('aria-label','Άνοιγμα λίστας');p.addEventListener('pointerdown',e=>e.preventDefault());p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();selectCell(input);input.focus();openAll()});wrap.appendChild(p)}
+ if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.setAttribute('aria-label','Άνοιγμα λίστας');p.addEventListener('pointerdown',e=>e.preventDefault());p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();closeAllSuggestionMenus(menu);selectCell(input);input.focus();openAll()});wrap.appendChild(p)}
  wrap.appendChild(menu);return {wrap,input}
 }
-function weeklyTotal(){const w=state.weekly[weekKey()]||blankWeekly();return WEEK_PRODUCT_SECTIONS.reduce((t,s)=>t+w[s.key].flat().filter(Boolean).length,0)}
-function updateWeekTotal(){document.getElementById('weekTotal').textContent='ΣΥΝΟΛΟ ΒΥΤΙΩΝ: '+weeklyTotal()}
+function weeklyTotal(){const w=state.weekly[weekKey()]||blankWeekly();return WEEK_PRODUCT_SECTIONS.reduce((t,s)=>t+w[s.key].flat().filter(v=>String(v||'').trim()).length,0)}
+function weeklyDayTotal(dayIndex){const w=state.weekly[weekKey()]||blankWeekly();return WEEK_PRODUCT_SECTIONS.reduce((total,section)=>total+(w[section.key]||[]).reduce((n,row)=>n+(String(row?.[dayIndex]||'').trim()?1:0),0),0)}
+function updateWeekTotal(){
+ const total=document.getElementById('weekTotal');if(total)total.textContent='ΣΥΝΟΛΟ ΒΥΤΙΩΝ: '+weeklyTotal();
+ document.querySelectorAll('#weeklyDays .day-total').forEach(el=>{const day=Number(el.dataset.day);el.textContent='ΣΥΝΟΛΟ: '+weeklyDayTotal(day)});
+}
 function dateForWeekDay(dayIndex){const d=new Date((state.weekStart||mondayOfToday())+'T12:00:00');d.setDate(d.getDate()+dayIndex);return iso(d)}
 function weeklyClientsForDay(dayIndex){const w=state.weekly[weekKey()]||blankWeekly();const out=[];for(const section of ['hypochlorite','hydrochloric','brine'])for(const row of (w[section]||[])){const name=upper(row?.[dayIndex]||'').trim();if(name)out.push(name)}return out}
 function syncWeeklyDayToDaily(dayIndex){const date=dateForWeekDay(dayIndex);if(date!==iso(new Date()))return;const clients=weeklyClientsForDay(dayIndex);if(!state.daily[date])state.daily[date]=blankDaily();while(state.daily[date].length<Math.max(16,clients.length))state.daily[date].push(Array(7).fill(''));for(let i=0;i<state.daily[date].length;i++)state.daily[date][i][0]=clients[i]||'';if(state.dailyDate===date)renderDaily()}
 function renderWeekly(){
  const start=new Date((state.weekStart||mondayOfToday())+'T12:00:00');state.weekStart=iso(start);document.getElementById('weekStart').value=state.weekStart;const k=weekKey();state.weekly[k]=normalizeWeekly(state.weekly[k]);state.weeklyDone[k]=normalizeDone(state.weeklyDone[k]);
  const days=document.getElementById('weeklyDays');days.innerHTML='<th class="row-label">ΠΡΟΪΟΝ / ΘΕΣΗ</th>';const names=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];const end=new Date(start);end.setDate(end.getDate()+6);document.getElementById('weekRange').textContent=fmt(start)+' – '+fmt(end);
- names.forEach((n,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);const th=document.createElement('th');th.dataset.day=i;th.innerHTML=`${fmt(d)}<br><strong>${n}</strong>`;days.appendChild(th)});
- const body=document.getElementById('weeklyBody');body.innerHTML='';WEEK_PRODUCT_SECTIONS.forEach(s=>{const h=document.createElement('tr');h.className='weekly-product-header '+s.cls;const th=document.createElement('th');th.className='row-label';th.textContent=s.label;h.appendChild(th);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;td.textContent=s.label;h.appendChild(td)}body.appendChild(h);
- for(let r=0;r<s.rows;r++){const tr=document.createElement('tr');tr.className='weekly-entry-row '+s.cls;const num=document.createElement('th');num.className='row-label entry-number';num.textContent=r+1;tr.appendChild(num);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;const x=makeInput(state.weekly[k][s.key][r][c],v=>{state.weekly[k][s.key][r][c]=v;updateWeekTotal();syncWeeklyDayToDaily(c)},'ocr-client-input',s.key==='salt'?'salt':'clients',true,{addToClients:s.key!=='salt'});const outer=document.createElement('div');outer.className='entry-with-check';const check=document.createElement('label');check.className='done-check';const cb=document.createElement('input');cb.type='checkbox';cb.checked=state.weeklyDone[k][s.key][r][c];const mark=document.createElement('span');mark.textContent='✓';cb.onchange=()=>{state.weeklyDone[k][s.key][r][c]=cb.checked;outer.classList.toggle('completed',cb.checked);save()};check.append(cb,mark);outer.append(x.wrap,check);outer.classList.toggle('completed',cb.checked);td.appendChild(outer);tr.appendChild(td)}body.appendChild(tr)}});updateWeekTotal()
+ const todayIso=iso(new Date()),todayIndex=Math.floor((new Date(todayIso+'T12:00:00')-start)/86400000),isCurrentWeek=todayIndex>=0&&todayIndex<7;
+ names.forEach((n,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);const th=document.createElement('th');th.dataset.day=i;if(isCurrentWeek&&i<todayIndex)th.classList.add('past-day');if(isCurrentWeek&&i===todayIndex)th.classList.add('today-day');th.innerHTML=`<div class="day-heading"><span>${fmt(d)}</span><strong>${n}</strong><span class="day-total" data-day="${i}">ΣΥΝΟΛΟ: ${weeklyDayTotal(i)}</span></div>`;days.appendChild(th)});
+ const body=document.getElementById('weeklyBody');body.innerHTML='';WEEK_PRODUCT_SECTIONS.forEach(s=>{const h=document.createElement('tr');h.className='weekly-product-header '+s.cls;const th=document.createElement('th');th.className='row-label';th.textContent=s.label;h.appendChild(th);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;if(isCurrentWeek&&c<todayIndex)td.classList.add('past-day');if(isCurrentWeek&&c===todayIndex)td.classList.add('today-day');td.textContent=s.label;h.appendChild(td)}body.appendChild(h);
+ for(let r=0;r<s.rows;r++){const tr=document.createElement('tr');tr.className='weekly-entry-row '+s.cls;const num=document.createElement('th');num.className='row-label entry-number';num.textContent=r+1;tr.appendChild(num);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;if(isCurrentWeek&&c<todayIndex)td.classList.add('past-day');if(isCurrentWeek&&c===todayIndex)td.classList.add('today-day');const x=makeInput(state.weekly[k][s.key][r][c],v=>{state.weekly[k][s.key][r][c]=v;updateWeekTotal();syncWeeklyDayToDaily(c)},'ocr-client-input',s.key==='salt'?'salt':'clients',true,{addToClients:s.key!=='salt'});const outer=document.createElement('div');outer.className='entry-with-check';const check=document.createElement('label');check.className='done-check';const cb=document.createElement('input');cb.type='checkbox';cb.checked=state.weeklyDone[k][s.key][r][c];const mark=document.createElement('span');mark.textContent='✓';cb.onchange=()=>{state.weeklyDone[k][s.key][r][c]=cb.checked;outer.classList.toggle('completed',cb.checked);save()};check.append(cb,mark);outer.append(x.wrap,check);outer.classList.toggle('completed',cb.checked);td.appendChild(outer);tr.appendChild(td)}body.appendChild(tr)}});updateWeekTotal();const table=document.getElementById('weeklyTable');table.classList.toggle('current-week',isCurrentWeek);requestAnimationFrame(()=>{if(isCurrentWeek&&window.matchMedia('(max-width:700px)').matches){const cell=table.querySelector('thead [data-day="'+todayIndex+'"]');cell?.scrollIntoView({inline:'start',block:'nearest',behavior:'auto'})}})
 }
 function normalizeRows(rows,count){const out=Array.isArray(rows)?rows:[];return out.map(r=>Array.from({length:count},(_,i)=>upper(r?.[i]||'')))}
-function renderDaily(){state.dailyDate=state.dailyDate||iso(new Date());document.getElementById('dailyDate').value=state.dailyDate;const k=dayKey();if(!state.daily[k])state.daily[k]=blankDaily();state.daily[k]=normalizeRows(state.daily[k],7);const head=document.getElementById('dailyHead');head.innerHTML='';DAILY_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('dailyBody');body.innerHTML='';state.daily[k].forEach((row,ri)=>{const tr=document.createElement('tr');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');const keys=['clients','tanks','carriers',null,null,null,'other'],key=keys[ci];const x=makeInput(v,val=>state.daily[k][ri][ci]=val,(ci===0?'ocr-client-input ':'')+(ci===3&&/24|25/.test(v)?'yellow':''),key,!!key);td.appendChild(x.wrap);tr.appendChild(td)});body.appendChild(tr)})}
+function normalizeDailyRows(rows){return (Array.isArray(rows)?rows:[]).map(r=>{const a=Array.isArray(r)?r:[];return [upper(a[0]||''),upper(a[1]||''),upper(a[2]||''),String(a[3]||''),SHIFT_OPTIONS.includes(upper(a[4]||''))?upper(a[4]||''):'',upper(a[5]||''),upper(a[6]||'')]})}
+function renderDaily(){
+ state.dailyDate=state.dailyDate||iso(new Date());document.getElementById('dailyDate').value=state.dailyDate;const k=dayKey();if(!state.daily[k])state.daily[k]=blankDaily();state.daily[k]=normalizeDailyRows(state.daily[k]);
+ const head=document.getElementById('dailyHead');head.innerHTML='';DAILY_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});
+ const body=document.getElementById('dailyBody');body.innerHTML='';
+ state.daily[k].forEach((row,ri)=>{
+  const tr=document.createElement('tr');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);
+  const addTextCell=(idx,listKey=null,cls='')=>{const td=document.createElement('td');const x=makeInput(row[idx],val=>state.daily[k][ri][idx]=val,cls,listKey,!!listKey);td.appendChild(x.wrap);tr.appendChild(td)};
+  addTextCell(0,'clients','ocr-client-input');
+  addTextCell(1,'tanks');
+  addTextCell(2,null,/24|25/.test(row[2])?'yellow':'');
+  const dateShiftTd=document.createElement('td');dateShiftTd.className='date-shift-td';const group=document.createElement('div');group.className='date-shift-controls';
+  const dateInput=document.createElement('input');dateInput.type='date';dateInput.className='daily-date-input';dateInput.value=row[3]||'';dateInput.setAttribute('aria-label','Ημερομηνία');dateInput.onchange=()=>{state.daily[k][ri][3]=dateInput.value;save()};
+  const shiftSelect=document.createElement('select');shiftSelect.className='daily-shift-select';shiftSelect.setAttribute('aria-label','Βάρδια');SHIFT_OPTIONS.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v||'ΒΑΡΔΙΑ';shiftSelect.appendChild(o)});shiftSelect.value=row[4]||'';shiftSelect.onchange=()=>{state.daily[k][ri][4]=shiftSelect.value;save()};
+  group.append(dateInput,shiftSelect);dateShiftTd.appendChild(group);tr.appendChild(dateShiftTd);
+  const timeTd=document.createElement('td');const timeInput=document.createElement('input');timeInput.type='time';timeInput.className='daily-time-input';timeInput.value=/^\d{2}:\d{2}$/.test(row[5]||'')?row[5]:'';timeInput.onchange=()=>{state.daily[k][ri][5]=timeInput.value;save()};timeTd.appendChild(timeInput);tr.appendChild(timeTd);
+  addTextCell(6,'other');
+  body.appendChild(tr)
+ })
+}
 function renderSequence(){state.sequenceDate=state.sequenceDate||iso(new Date());document.getElementById('sequenceDate').value=state.sequenceDate;const k=seqKey();if(!state.sequence[k])state.sequence[k]=blankSequence();state.sequence[k]=normalizeRows(state.sequence[k],6);const head=document.getElementById('sequenceHead');head.innerHTML='';SEQUENCE_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('sequenceBody');body.innerHTML='';state.sequence[k].forEach((row,ri)=>{const tr=document.createElement('tr');if(row[5]==='ΝΑΙ')tr.classList.add('completed-row');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');if(ci===5){const lab=document.createElement('label');lab.className='sequence-complete';const cb=document.createElement('input');cb.type='checkbox';cb.checked=v==='ΝΑΙ';cb.onchange=()=>{state.sequence[k][ri][ci]=cb.checked?'ΝΑΙ':'';tr.classList.toggle('completed-row',cb.checked);save()};lab.appendChild(cb);td.appendChild(lab)}else{const key=ci===0?'tanks':null;const x=makeInput(v,val=>state.sequence[k][ri][ci]=val,'',key,!!key);td.appendChild(x.wrap)}tr.appendChild(td)});body.appendChild(tr)})}
 function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}}
 function saveLists(show=false){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set(document.getElementById(k+'List').value.split(/\r?\n/).map(x=>upper(x.trim())).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}save();if(show)alert('Οι λίστες αποθηκεύτηκαν αλφαβητικά.')}
@@ -336,7 +383,32 @@ function bind(){bindTabs();bindClipboardButtons();
  document.getElementById('exportData').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='programma-fortoseon-backup.json';a.click();URL.revokeObjectURL(a.href)};document.getElementById('importData').onchange=async e=>{try{state=JSON.parse(await e.target.files[0].text());save();location.reload()}catch{alert('Μη έγκυρο αρχείο.')}};document.getElementById('eraseAll').onclick=()=>{if(confirm('Οριστική διαγραφή όλων των δεδομένων;')){[KEY,...OLD_KEYS].forEach(k=>localStorage.removeItem(k));location.reload()}};
  window.addEventListener('pagehide',()=>saveLists(false));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLists(false)})
 }
-state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSequence();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
+
+
+// v2.9: ημερήσιο σύνολο βυτίων δίπλα σε κάθε ημέρα του εβδομαδιαίου.
+// Δεν αλλάζουμε πλέον CSS κλάσεις κατά τη διάρκεια του zoom, γιατί το Safari
+// στέλνει συνεχόμενα visualViewport resize/scroll events και δημιουργούσε βρόχο
+// επανασχεδίασης (τρεμόπαιγμα και κόλλημα). Η προβολή παραμένει σταθερή και
+// η πλήρης εβδομάδα ενεργοποιείται μόνο από το κουμπί «Όλη η εβδομάδα».
+function syncVisualViewportLayout(){
+ document.body.classList.remove('visual-zoom-out','zoom-overview','zoom-detail');
+ const table=document.getElementById('weeklyTable');
+ if(table)table.classList.remove('auto-fit-week');
+}
+function bindVisualViewportLayout(){
+ syncVisualViewportLayout();
+ // Μόνο αλλαγή προσανατολισμού/κανονικό resize, όχι visualViewport pinch events.
+ let resizeTimer=0;
+ window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(syncVisualViewportLayout,180);
+ },{passive:true});
+ window.addEventListener('orientationchange',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(syncVisualViewportLayout,300);
+ },{passive:true});
+}
+state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSequence();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
 // Αφαιρεί παλιό service worker/cache ώστε το GitHub Pages να φορτώνει πάντα τη νεότερη έκδοση.
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
 if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}

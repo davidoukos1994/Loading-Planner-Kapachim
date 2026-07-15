@@ -209,3 +209,147 @@ td:focus-within{position:relative;z-index:100002}
   .weekly-sheet.fit-week .entry-with-check{grid-template-columns:minmax(0,1fr) 15px 18px}
   .weekly-sheet.fit-week .done-check{min-width:18px}.weekly-sheet.fit-week .done-check span{width:15px;height:15px;font-size:9px}
 }
+
+
+/* v2.4: σωστή προσαρμογή στο οπτικό πλάτος του κινητού κατά το pinch zoom */
+html{min-width:100%;background:var(--bg)}
+body{min-width:var(--app-visual-width,100%)}
+body.visual-zoom-out .topbar,
+body.visual-zoom-out .tabs,
+body.visual-zoom-out main{width:var(--app-visual-width,100%);max-width:none}
+body.visual-zoom-out .sheet-wrap{width:100%;max-width:none}
+
+/* Η αυτόματη συμπαγής προβολή χρησιμοποιεί τους ίδιους κανόνες με το κουμπί «Όλη η εβδομάδα». */
+.weekly-sheet.auto-fit-week{width:100%;min-width:760px;table-layout:fixed}
+.weekly-sheet.auto-fit-week .row-label{width:72px;min-width:72px}
+.weekly-sheet.auto-fit-week th:not(.row-label),
+.weekly-sheet.auto-fit-week td{width:auto!important;min-width:0!important;max-width:none!important}
+.weekly-sheet.auto-fit-week .cell-input{font-size:10px!important;padding:3px 2px!important}
+.weekly-sheet.auto-fit-week .picker-button{min-width:22px;width:22px;font-size:14px}
+.weekly-sheet.auto-fit-week .entry-with-check{grid-template-columns:minmax(0,1fr) 22px 27px}
+.weekly-sheet.auto-fit-week .done-check{min-width:27px}
+.weekly-sheet.auto-fit-week .done-check span{width:20px;height:20px;font-size:13px}
+
+@media(max-width:700px){
+  body.visual-zoom-out{overflow-x:hidden}
+  .weekly-sheet.auto-fit-week{min-width:100%;width:100%;font-size:7px}
+  .weekly-sheet.auto-fit-week .row-label{width:46px;min-width:46px;font-size:6px}
+  .weekly-sheet.auto-fit-week th{font-size:6px;padding:2px 1px}
+  .weekly-sheet.auto-fit-week tr.weekly-entry-row td{height:35px}
+  .weekly-sheet.auto-fit-week tr.weekly-entry-row .client-name-input{height:34px;min-height:34px;font-size:7px!important;line-height:1.05;padding:2px 1px!important}
+  .weekly-sheet.auto-fit-week .picker-button{min-width:15px;width:15px;font-size:10px}
+  .weekly-sheet.auto-fit-week .entry-with-check{grid-template-columns:minmax(0,1fr) 15px 18px}
+  .weekly-sheet.auto-fit-week .done-check{min-width:18px}
+  .weekly-sheet.auto-fit-week .done-check span{width:15px;height:15px;font-size:9px}
+}
+
+/* v2.5: σταθερή και καθαρή προβολή στο iPhone σε zoom out / zoom in.
+   Στο zoom out εμφανίζεται καθαρή επισκόπηση 7 ημερών χωρίς τα κουμπιά να κλέβουν χώρο.
+   Στο zoom in διατηρούνται μεγάλα, επεξεργάσιμα κελιά με οριζόντια κύλιση. */
+html,body{width:100%;max-width:100%;}
+body{min-width:0!important;}
+body.visual-zoom-out .topbar,
+body.visual-zoom-out .tabs,
+body.visual-zoom-out main{width:100%!important;max-width:100%!important;}
+body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;overflow-x:hidden;}
+
+@media(max-width:700px){
+  /* Επισκόπηση ολόκληρης εβδομάδας: ονόματα σε 2 γραμμές, χωρίς βελάκια/τικ. */
+  body.zoom-overview .weekly-sheet{
+    width:100%!important;
+    min-width:100%!important;
+    table-layout:fixed!important;
+  }
+  body.zoom-overview .weekly-sheet .row-label{
+    width:48px!important;min-width:48px!important;max-width:48px!important;
+    position:static!important;font-size:7px!important;
+  }
+  body.zoom-overview .weekly-sheet th:not(.row-label),
+  body.zoom-overview .weekly-sheet tr.weekly-entry-row td{
+    width:auto!important;min-width:0!important;max-width:none!important;
+  }
+  body.zoom-overview .weekly-sheet .entry-with-check{
+    display:block!important;height:100%!important;
+  }
+  body.zoom-overview .weekly-sheet .picker-button,
+  body.zoom-overview .weekly-sheet .done-check{
+    display:none!important;
+  }
+  body.zoom-overview .weekly-sheet tr.weekly-entry-row td{height:44px!important;}
+  body.zoom-overview .weekly-sheet tr.weekly-entry-row .client-name-input{
+    display:block!important;
+    width:100%!important;
+    height:43px!important;min-height:43px!important;
+    padding:4px 2px!important;
+    font-size:9px!important;line-height:1.08!important;font-weight:700!important;
+    white-space:normal!important;overflow:hidden!important;overflow-wrap:anywhere!important;
+    text-align:left!important;
+  }
+  body.zoom-overview .weekly-sheet tr.weekly-product-header th,
+  body.zoom-overview .weekly-sheet tr.weekly-product-header td{
+    height:34px!important;font-size:7px!important;line-height:1.05!important;padding:3px 1px!important;
+    overflow-wrap:anywhere!important;
+  }
+  body.zoom-overview .weekly-sheet thead th{position:static!important;font-size:7px!important;padding:3px 1px!important;}
+  body.zoom-overview .floating-tools{display:none!important;}
+
+  /* Μεγέθυνση: ευανάγνωστα κελιά και κύλιση, χωρίς επικάλυψη από sticky πρώτη στήλη. */
+  body.zoom-detail .sheet-wrap{overflow:auto!important;-webkit-overflow-scrolling:touch;}
+  body.zoom-detail .weekly-sheet{min-width:1500px!important;width:max-content!important;table-layout:fixed!important;}
+  body.zoom-detail .weekly-sheet .row-label{
+    position:static!important;width:92px!important;min-width:92px!important;max-width:92px!important;
+  }
+  body.zoom-detail .weekly-sheet th:not(.row-label),
+  body.zoom-detail .weekly-sheet tr.weekly-entry-row td{
+    width:190px!important;min-width:190px!important;max-width:190px!important;
+  }
+  body.zoom-detail .weekly-sheet tr.weekly-entry-row td{height:54px!important;}
+  body.zoom-detail .weekly-sheet tr.weekly-entry-row .client-name-input{
+    height:53px!important;min-height:53px!important;font-size:16px!important;line-height:1.18!important;
+    padding:7px 6px!important;white-space:normal!important;overflow-wrap:anywhere!important;
+  }
+  body.zoom-detail .weekly-sheet .entry-with-check{grid-template-columns:minmax(0,1fr) 34px 40px!important;}
+  body.zoom-detail .weekly-sheet .picker-button{min-width:34px!important;width:34px!important;}
+  body.zoom-detail .weekly-sheet .done-check{min-width:40px!important;}
+}
+\n/* v2.7: κινητό — δείχνει από τη σημερινή ημέρα και μετά, χωρίς διαγραφή δεδομένων. */
+.weekly-sheet .today-day{background:#eef8ff!important;box-shadow:inset 3px 0 0 #1976d2,inset -3px 0 0 #1976d2}
+@media(max-width:700px){
+  .weekly-sheet.current-week .past-day{display:none!important}
+  .weekly-sheet.current-week{min-width:max-content!important;width:max-content!important}
+  .weekly-sheet.current-week th:not(.row-label),
+  .weekly-sheet.current-week tr.weekly-entry-row td{min-width:210px!important;width:210px!important;max-width:210px!important}
+  .weekly-sheet.current-week .row-label{position:sticky!important;left:0!important;z-index:8!important}
+  .daily-sheet .inline-suggestions{z-index:200000!important;max-height:46vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+}
+
+/* v2.8 — καθημερινό χωρίς μεταφορέα, με επιλογή ημερομηνίας και βάρδιας */
+.daily-sheet{min-width:1040px}
+.daily-sheet th:nth-child(1){width:42px;min-width:42px}
+.daily-sheet th:nth-child(2){min-width:180px}
+.daily-sheet th:nth-child(3){min-width:135px}
+.daily-sheet th:nth-child(4){min-width:105px}
+.daily-sheet th:nth-child(5){min-width:225px}
+.daily-sheet th:nth-child(6){min-width:125px}
+.daily-sheet th:nth-child(7){min-width:175px}
+.date-shift-td{padding:4px!important}
+.date-shift-controls{display:grid;grid-template-columns:minmax(132px,1fr) minmax(96px,.75fr);gap:5px;align-items:center;height:100%}
+.daily-date-input,.daily-shift-select,.daily-time-input{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #b6c1cb;border-radius:7px;background:#fff;padding:6px;font:inherit;color:#18232d}
+.daily-shift-select{font-weight:700}
+.daily-time-input{border:0;border-radius:0;min-height:48px;padding:7px}
+@media(max-width:700px){
+ .daily-sheet{min-width:900px}
+ .daily-sheet th:nth-child(2){min-width:165px}
+ .daily-sheet th:nth-child(3){min-width:125px}
+ .daily-sheet th:nth-child(5){min-width:205px}
+ .date-shift-controls{grid-template-columns:120px 90px;gap:4px}
+ .daily-date-input,.daily-shift-select,.daily-time-input{font-size:14px;min-height:44px}
+}
+
+
+/* v2.9 — σύνολο βυτίων ανά ημέρα */
+.day-heading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.15}
+.day-heading .day-total{display:inline-flex;align-items:center;justify-content:center;margin-top:3px;padding:3px 7px;border-radius:999px;background:#23466d;color:#fff;font-size:clamp(9px,1.8vw,12px);font-weight:800;white-space:nowrap}
+#weeklyDays th.today-day .day-total{background:#198754}
+#weeklyTable.fit-week .day-heading .day-total{font-size:8px;padding:2px 4px}
+@media(max-width:700px){#weeklyDays th{min-height:76px}.day-heading{gap:3px}.day-heading .day-total{font-size:10px;padding:3px 6px}}
