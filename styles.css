@@ -382,3 +382,30 @@ body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;o
  .sales-order-row .client-name-input,.sales-order-row input[type=text]{font-size:18px;min-height:50px}
  .sales-order-current{box-shadow:0 0 0 3px rgba(229,164,0,.22)}
 }
+
+
+/* v3.1 — υπολογισμός σειράς πώλησης δεξαμενών */
+.sales-order-calculator{display:block;padding:12px}
+.sales-order-header{display:grid;grid-template-columns:48px minmax(180px,1fr);align-items:center;gap:10px}
+.sales-order-inputs{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:8px;margin-top:10px}
+.sales-metric-field{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:900;color:#34485c}
+.sales-metric-field input{width:100%;min-height:46px;border:1px solid #aab6c2;border-radius:9px;padding:8px;font-size:18px;font-weight:800;background:#fff}
+.sales-order-metrics{display:grid;grid-template-columns:repeat(5,minmax(110px,1fr));gap:7px;margin-top:10px}
+.sales-metric-box{display:grid;grid-template-columns:1fr auto;align-items:end;gap:2px 6px;padding:8px;border:1px solid #bdc7d1;border-radius:9px;background:#f7f9fb}
+.sales-metric-box span{grid-column:1/-1;font-size:10px;font-weight:900;color:#556575}
+.sales-metric-box strong{font-size:19px;color:#1f3b5b}
+.sales-metric-box small{font-size:11px;font-weight:800;color:#667686}
+.sales-order-calculator .sales-order-controls{margin-top:10px}
+.sales-order-current .sales-metric-box{background:#fffbe3;border-color:#e5b92e}
+.sales-order-done .sales-metric-box{background:#eef8f1}
+@media(max-width:700px){
+ .sales-order-calculator{padding:9px}
+ .sales-order-header{grid-template-columns:40px minmax(0,1fr)}
+ .sales-order-inputs{grid-template-columns:1fr 1fr;gap:7px}
+ .sales-order-inputs .sales-metric-field:first-child{grid-column:1/-1}
+ .sales-order-metrics{grid-template-columns:1fr 1fr;gap:6px}
+ .sales-order-metrics .sales-metric-box:last-child{grid-column:1/-1}
+ .sales-metric-field input{font-size:17px;min-height:48px}
+ .sales-metric-box strong{font-size:17px}
+ .sales-order-calculator .sales-order-controls{grid-column:auto}
+}

@@ -9,17 +9,16 @@
   <meta http-equiv="Expires" content="0" />
   <title>Πρόγραμμα Φορτώσεων</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=3.0.0" />
+  <link rel="stylesheet" href="styles.css?v=3.1.0" />
 </head>
 <body>
 <header class="topbar">
-  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.0</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.1</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
   <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
 </header>
 <nav class="tabs" aria-label="Κύρια πλοήγηση">
   <button class="tab active" data-view="weekly">Εβδομαδιαίο</button>
   <button class="tab" data-view="daily">Καθημερινό</button>
-  <button class="tab" data-view="sequence">Σειρά φορτώσεων</button>
   <button class="tab" data-view="salesOrder">Σειρά πώλησης δεξαμενών</button>
   <button class="tab" data-view="lists">Λίστες / Autocomplete</button>
   <button class="tab" data-view="backup">Αντίγραφο ασφαλείας</button>
@@ -50,17 +49,6 @@
     <div class="sheet-wrap"><table class="excel daily-sheet" id="dailyTable"><thead><tr id="dailyHead"></tr></thead><tbody id="dailyBody"></tbody></table></div>
   </section>
 
-  <section id="sequence" class="view">
-    <div class="toolbar">
-      <label>Ημερομηνία <input type="date" id="sequenceDate" /></label>
-      <button id="sequenceCameraBtn">📷 Κάμερα</button><input type="file" id="sequenceCamera" accept="image/*" capture="environment" hidden />
-      <button id="sequenceGalleryBtn">🖼️ Συλλογή</button><input type="file" id="sequenceGallery" accept="image/*" hidden />
-      <button id="addSequenceRow">＋ Νέα γραμμή</button><button id="clearSequence" class="danger">Καθαρισμός</button><button onclick="window.print()">Εκτύπωση</button>
-    </div>
-    <div class="sheet-title">ΣΕΙΡΑ ΔΕΞΑΜΕΝΩΝ ΦΟΡΤΩΣΗΣ</div>
-    <div class="sheet-wrap"><table class="excel sequence-sheet" id="sequenceTable"><thead><tr id="sequenceHead"></tr></thead><tbody id="sequenceBody"></tbody></table></div>
-  </section>
-
   <section id="salesOrder" class="view">
     <div class="toolbar">
       <button id="addSalesOrderRow">＋ Νέα δεξαμενή</button>
@@ -68,7 +56,7 @@
       <button id="clearSalesOrder" class="danger">Καθαρισμός σειράς</button>
     </div>
     <div class="sheet-title">ΣΕΙΡΑ ΠΩΛΗΣΗΣ ΔΕΞΑΜΕΝΩΝ</div>
-    <p class="hint sales-order-hint">Η έντονα χρωματισμένη γραμμή είναι η επόμενη δεξαμενή. Όταν αδειάσει, πάτησε «ΑΔΕΙΑΣΕ / ΤΕΛΟΣ» και θα επισημανθεί αυτόματα η επόμενη.</p>
+    <p class="hint sales-order-hint">Η έντονα χρωματισμένη γραμμή είναι η επόμενη δεξαμενή. Συμπλήρωσε στάθμη, αριθμό βυτίων και τόνους ανά βυτίο. Όταν το υπόλοιπο μηδενιστεί, η δεξαμενή ολοκληρώνεται αυτόματα και επισημαίνεται η επόμενη.</p>
     <div class="sales-order-wrap">
       <div id="salesOrderEmpty" class="sales-order-empty" hidden>Δεν έχεις βάλει ακόμη δεξαμενές στη σειρά.</div>
       <ol id="salesOrderList" class="sales-order-list"></ol>
@@ -110,6 +98,6 @@
 
 </main>
 <div class="floating-tools" aria-label="Εργαλεία κελιού"><button type="button" data-copy-cell title="Αντιγραφή">📋</button><button type="button" data-paste-cell title="Επικόλληση">📥</button></div>
-<dialog id="ocrDialog"><form method="dialog" class="ocr-panel"><div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div><p>Η εικόνα δεν αποθηκεύεται. Στο εβδομαδιαίο και καθημερινό αναζητά πελάτες. Στη Σειρά φορτώσεων αναζητά δεξαμενή, αρχική/τελική στάθμη, ενεργά, σόδα και ολοκλήρωση.</p><div class="progress"><div id="ocrBar"></div></div><div id="ocrMessage">Προετοιμασία…</div><textarea id="ocrText" rows="16"></textarea><div class="toolbar"><button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button><button type="button" id="copyOcr">Αντιγραφή κειμένου</button><button value="cancel">Κλείσιμο</button></div></form></dialog>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=3.0.0"></script>
+<dialog id="ocrDialog"><form method="dialog" class="ocr-panel"><div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div><p>Η εικόνα δεν αποθηκεύεται. Στο εβδομαδιαίο και καθημερινό αναζητά πελάτες. </p><div class="progress"><div id="ocrBar"></div></div><div id="ocrMessage">Προετοιμασία…</div><textarea id="ocrText" rows="16"></textarea><div class="toolbar"><button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button><button type="button" id="copyOcr">Αντιγραφή κειμένου</button><button value="cancel">Κλείσιμο</button></div></form></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=3.1.0"></script>
 </body></html>

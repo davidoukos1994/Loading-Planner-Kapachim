@@ -32,7 +32,7 @@ localStorage.setItem(DEVICE_ID_KEY,DEVICE_ID);
 let supabaseClient=null, syncReady=false, applyingRemote=false, remoteTimer=null, realtimeChannel=null;
 
 
-function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},dailySchemaVersion:2,sequenceDate:'',sequence:{},salesOrder:Array.from({length:8},()=>({tank:'',done:false})),lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
+function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},dailySchemaVersion:2,sequenceDate:'',sequence:{},salesOrder:Array.from({length:8},()=>({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false})),lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Δ3','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
 function migrateDailyState(s){
  if(s.dailySchemaVersion===2)return s;
  const migrated={};
@@ -78,7 +78,7 @@ function applyRemoteState(remote){
  state=migrateDailyState({...base,...remote,dailySchemaVersion:remote.dailySchemaVersion||1,lists:{...base.lists,...(remote.lists||{})},weeklyDone:remote.weeklyDone||{},sequence:remote.sequence||{}});
  localStorage.setItem(KEY,JSON.stringify(state));
  state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());
- initLists();renderWeekly();renderDaily();renderSequence();renderSalesOrder();bindVisualViewportLayout();
+ initLists();renderWeekly();renderDaily();renderSalesOrder();bindVisualViewportLayout();
  applyingRemote=false;
  setStatus('Κοινόχρηστο • ενημερώθηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
 }
@@ -203,30 +203,72 @@ function renderDaily(){
 }
 function renderSequence(){state.sequenceDate=state.sequenceDate||iso(new Date());document.getElementById('sequenceDate').value=state.sequenceDate;const k=seqKey();if(!state.sequence[k])state.sequence[k]=blankSequence();state.sequence[k]=normalizeRows(state.sequence[k],6);const head=document.getElementById('sequenceHead');head.innerHTML='';SEQUENCE_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('sequenceBody');body.innerHTML='';state.sequence[k].forEach((row,ri)=>{const tr=document.createElement('tr');if(row[5]==='ΝΑΙ')tr.classList.add('completed-row');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');if(ci===5){const lab=document.createElement('label');lab.className='sequence-complete';const cb=document.createElement('input');cb.type='checkbox';cb.checked=v==='ΝΑΙ';cb.onchange=()=>{state.sequence[k][ri][ci]=cb.checked?'ΝΑΙ':'';tr.classList.toggle('completed-row',cb.checked);save()};lab.appendChild(cb);td.appendChild(lab)}else{const key=ci===0?'tanks':null;const x=makeInput(v,val=>state.sequence[k][ri][ci]=val,'',key,!!key);td.appendChild(x.wrap)}tr.appendChild(td)});body.appendChild(tr)})}
 
+function tankTonsPerMeter(tank){
+ const t=normalizeMatch(tank).replace(/\s+/g,'');
+ if(['Z2','Ζ2','Z3','Ζ3'].includes(t))return 13.54;
+ if(['Z1','Ζ1','D1','Δ1','D2','Δ2','D3','Δ3'].includes(t))return 11.63;
+ return 0;
+}
+function salesOrderCalc(row){
+ const factor=tankTonsPerMeter(row.tank),meters=Math.max(0,Number(row.meters)||0),tankers=Math.max(0,Math.floor(Number(row.tankers)||0)),tonsPerTanker=Math.max(0,Number(row.tonsPerTanker)||0);
+ const initialTons=meters*factor,soldTons=tankers*tonsPerTanker,remainingTons=Math.max(0,initialTons-soldTons),remainingMeters=factor?remainingTons/factor:0;
+ const autoDone=!!row.tank&&initialTons>0&&remainingTons<=0.005;
+ return {factor,meters,tankers,tonsPerTanker,initialTons,soldTons,remainingTons,remainingMeters,autoDone,done:!!row.manualDone||autoDone};
+}
 function normalizeSalesOrder(rows){
  const source=Array.isArray(rows)?rows:[];
- const out=source.map(r=>({tank:upper(typeof r==='string'?r:(r?.tank||'')),done:!!(typeof r==='object'&&r?.done)}));
- while(out.length<8)out.push({tank:'',done:false});
+ const out=source.map(r=>{
+  if(typeof r==='string')return {tank:upper(r),meters:'',tankers:'',tonsPerTanker:'',manualDone:false};
+  return {tank:upper(r?.tank||''),meters:r?.meters??'',tankers:r?.tankers??'',tonsPerTanker:r?.tonsPerTanker??'',manualDone:!!(r?.manualDone??r?.done)};
+ });
+ while(out.length<8)out.push({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false});
  return out
+}
+function makeNumberField(value,label,step='0.01',min='0'){
+ const wrap=document.createElement('label');wrap.className='sales-metric-field';
+ const span=document.createElement('span');span.textContent=label;
+ const input=document.createElement('input');input.type='number';input.inputMode='decimal';input.min=min;input.step=step;input.value=value??'';
+ wrap.append(span,input);return {wrap,input};
+}
+function metricBox(label,value,unit=''){
+ const box=document.createElement('div');box.className='sales-metric-box';
+ const l=document.createElement('span');l.textContent=label;
+ const v=document.createElement('strong');v.textContent=value;
+ const u=document.createElement('small');u.textContent=unit;
+ box.append(l,v,u);return box;
 }
 function renderSalesOrder(){
  state.salesOrder=normalizeSalesOrder(state.salesOrder);
  const list=document.getElementById('salesOrderList'),empty=document.getElementById('salesOrderEmpty');
  if(!list)return;list.innerHTML='';
- const nextIndex=state.salesOrder.findIndex(r=>r.tank&&!r.done);
+ const calculations=state.salesOrder.map(salesOrderCalc);
+ const nextIndex=state.salesOrder.findIndex((r,i)=>r.tank&&!calculations[i].done);
  empty.hidden=state.salesOrder.some(r=>r.tank);
  state.salesOrder.forEach((row,ri)=>{
-  const li=document.createElement('li');li.className='sales-order-row';
-  if(row.done)li.classList.add('sales-order-done');
+  const calc=calculations[ri];
+  const li=document.createElement('li');li.className='sales-order-row sales-order-calculator';
+  if(calc.done)li.classList.add('sales-order-done');
   if(ri===nextIndex)li.classList.add('sales-order-current');
+  const header=document.createElement('div');header.className='sales-order-header';
   const number=document.createElement('span');number.className='sales-order-number';number.textContent=ri+1;
   const x=makeInput(row.tank,val=>{state.salesOrder[ri].tank=val;renderSalesOrder()},'sales-order-input','tanks',true);
+  header.append(number,x.wrap);
+  const inputs=document.createElement('div');inputs.className='sales-order-inputs';
+  const meters=makeNumberField(row.meters,'ΑΡΧΙΚΗ ΣΤΑΘΜΗ (m)','0.01');
+  const tankers=makeNumberField(row.tankers,'ΑΡΙΘΜΟΣ ΒΥΤΙΩΝ','1');
+  const tons=makeNumberField(row.tonsPerTanker,'ΤΟΝΟΙ / ΒΥΤΙΟ','0.1');
+  const bindNum=(field,key)=>{field.input.onchange=()=>{state.salesOrder[ri][key]=field.input.value;renderSalesOrder();save()}};
+  bindNum(meters,'meters');bindNum(tankers,'tankers');bindNum(tons,'tonsPerTanker');
+  inputs.append(meters.wrap,tankers.wrap,tons.wrap);
+  const metrics=document.createElement('div');metrics.className='sales-order-metrics';
+  metrics.append(metricBox('ΣΥΝΤΕΛΕΣΤΗΣ',calc.factor?calc.factor.toFixed(2):'—','tn/m'),metricBox('ΑΡΧΙΚΟ',calc.initialTons.toFixed(1),'tn'),metricBox('ΠΩΛΗΘΗΚΑΝ',calc.soldTons.toFixed(1),'tn'),metricBox('ΥΠΟΛΟΙΠΟ',calc.remainingTons.toFixed(1),'tn'),metricBox('ΥΠΟΛΟΙΠΟ ΣΤΑΘΜΗΣ',calc.remainingMeters.toFixed(2),'m'));
   const controls=document.createElement('div');controls.className='sales-order-controls';
   const up=document.createElement('button');up.type='button';up.className='order-move';up.textContent='↑';up.title='Μετακίνηση πάνω';up.disabled=ri===0;up.onclick=()=>{[state.salesOrder[ri-1],state.salesOrder[ri]]=[state.salesOrder[ri],state.salesOrder[ri-1]];renderSalesOrder();save()};
   const down=document.createElement('button');down.type='button';down.className='order-move';down.textContent='↓';down.title='Μετακίνηση κάτω';down.disabled=ri===state.salesOrder.length-1;down.onclick=()=>{[state.salesOrder[ri+1],state.salesOrder[ri]]=[state.salesOrder[ri],state.salesOrder[ri+1]];renderSalesOrder();save()};
-  const done=document.createElement('button');done.type='button';done.className='sales-order-done-btn';done.textContent=row.done?'ΕΠΑΝΑΦΟΡΑ':'ΑΔΕΙΑΣΕ / ΤΕΛΟΣ';done.disabled=!row.tank;done.onclick=()=>{state.salesOrder[ri].done=!state.salesOrder[ri].done;renderSalesOrder();save()};
-  const remove=document.createElement('button');remove.type='button';remove.className='sales-order-remove';remove.textContent='✕';remove.title='Αφαίρεση';remove.onclick=()=>{state.salesOrder.splice(ri,1);state.salesOrder.push({tank:'',done:false});renderSalesOrder();save()};
-  controls.append(up,down,done,remove);li.append(number,x.wrap,controls);list.appendChild(li)
+  const done=document.createElement('button');done.type='button';done.className='sales-order-done-btn';done.textContent=calc.autoDone?'ΤΕΛΕΙΩΣΕ ΑΥΤΟΜΑΤΑ':(row.manualDone?'ΕΠΑΝΑΦΟΡΑ':'ΑΔΕΙΑΣΕ / ΤΕΛΟΣ');done.disabled=!row.tank||calc.autoDone;done.onclick=()=>{state.salesOrder[ri].manualDone=!state.salesOrder[ri].manualDone;renderSalesOrder();save()};
+  const remove=document.createElement('button');remove.type='button';remove.className='sales-order-remove';remove.textContent='✕';remove.title='Αφαίρεση';remove.onclick=()=>{state.salesOrder.splice(ri,1);state.salesOrder.push({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false});renderSalesOrder();save()};
+  controls.append(up,down,done,remove);
+  li.append(header,inputs,metrics,controls);list.appendChild(li)
  })
 }
 function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}}
@@ -394,21 +436,19 @@ function bind(){bindTabs();bindClipboardButtons();
   state.weeklyDone[newKey]=JSON.parse(JSON.stringify(currentDone));
   state.weekStart=newKey;
   renderWeekly();save()
-};document.getElementById('dailyDate').onchange=e=>{state.dailyDate=e.target.value;renderDaily();save()};document.getElementById('sequenceDate').onchange=e=>{state.sequenceDate=e.target.value;renderSequence();save()};
+};document.getElementById('dailyDate').onchange=e=>{state.dailyDate=e.target.value;renderDaily();save()};
  document.getElementById('weeklyCameraBtn').onclick=()=>document.getElementById('weeklyCamera').click();
  document.getElementById('weeklyGalleryBtn').onclick=()=>document.getElementById('weeklyGallery').click();
  document.getElementById('dailyCameraBtn').onclick=()=>document.getElementById('dailyCamera').click();
  document.getElementById('dailyGalleryBtn').onclick=()=>document.getElementById('dailyGallery').click();
- document.getElementById('sequenceCameraBtn').onclick=()=>document.getElementById('sequenceCamera').click();
- document.getElementById('sequenceGalleryBtn').onclick=()=>document.getElementById('sequenceGallery').click();
  const bindPhotoInput=(id,target)=>{document.getElementById(id).onchange=e=>{const file=e.target.files&&e.target.files[0];if(file)runOcr(file,target);e.target.value=''}};
- bindPhotoInput('weeklyCamera','weekly');bindPhotoInput('weeklyGallery','weekly');bindPhotoInput('dailyCamera','daily');bindPhotoInput('dailyGallery','daily');bindPhotoInput('sequenceCamera','sequence');bindPhotoInput('sequenceGallery','sequence');
+ bindPhotoInput('weeklyCamera','weekly');bindPhotoInput('weeklyGallery','weekly');bindPhotoInput('dailyCamera','daily');bindPhotoInput('dailyGallery','daily');
  document.getElementById('insertOcrLines').onclick=insertOcr;document.getElementById('copyOcr').onclick=()=>navigator.clipboard.writeText(document.getElementById('ocrText').value);
- document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(7).fill(''));renderDaily();save()};document.getElementById('addSequenceRow').onclick=()=>{state.sequence[seqKey()].push(Array(6).fill(''));renderSequence();save()};
- document.getElementById('addSalesOrderRow').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder);state.salesOrder.push({tank:'',done:false});renderSalesOrder();save()};
- document.getElementById('resetSalesOrderDone').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder).map(r=>({...r,done:false}));renderSalesOrder();save()};
- document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};document.getElementById('clearDaily').onclick=()=>{if(confirm('Να καθαριστεί το καθημερινό;')){state.daily[dayKey()]=blankDaily();renderDaily();save()}};document.getElementById('clearSequence').onclick=()=>{if(confirm('Να καθαριστεί η σειρά φορτώσεων;')){state.sequence[seqKey()]=blankSequence();renderSequence();save()}};
- document.getElementById('clearSalesOrder').onclick=()=>{if(confirm('Να καθαριστεί η σειρά πώλησης δεξαμενών;')){state.salesOrder=Array.from({length:8},()=>({tank:'',done:false}));renderSalesOrder();save()}};
+ document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(7).fill(''));renderDaily();save()};
+ document.getElementById('addSalesOrderRow').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder);state.salesOrder.push({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false});renderSalesOrder();save()};
+ document.getElementById('resetSalesOrderDone').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder).map(r=>({...r,manualDone:false}));renderSalesOrder();save()};
+ document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};document.getElementById('clearDaily').onclick=()=>{if(confirm('Να καθαριστεί το καθημερινό;')){state.daily[dayKey()]=blankDaily();renderDaily();save()}};
+ document.getElementById('clearSalesOrder').onclick=()=>{if(confirm('Να καθαριστεί η σειρά πώλησης δεξαμενών;')){state.salesOrder=Array.from({length:8},()=>({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false}));renderSalesOrder();save()}};
  document.getElementById('saveLists').onclick=()=>saveLists(true);for(const k of ['clients','tanks','carriers','other'])document.getElementById(k+'List').addEventListener('input',e=>{const p=e.target.selectionStart;e.target.value=upper(e.target.value);try{e.target.setSelectionRange(p,p)}catch{}autoLists()});
  document.getElementById('exportData').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='programma-fortoseon-backup.json';a.click();URL.revokeObjectURL(a.href)};document.getElementById('importData').onchange=async e=>{try{state=JSON.parse(await e.target.files[0].text());save();location.reload()}catch{alert('Μη έγκυρο αρχείο.')}};document.getElementById('eraseAll').onclick=()=>{if(confirm('Οριστική διαγραφή όλων των δεδομένων;')){[KEY,...OLD_KEYS].forEach(k=>localStorage.removeItem(k));location.reload()}};
  window.addEventListener('pagehide',()=>saveLists(false));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLists(false)})
@@ -438,7 +478,7 @@ function bindVisualViewportLayout(){
   resizeTimer=setTimeout(syncVisualViewportLayout,300);
  },{passive:true});
 }
-state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSequence();renderSalesOrder();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
+state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSalesOrder();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
 // Αφαιρεί παλιό service worker/cache ώστε το GitHub Pages να φορτώνει πάντα τη νεότερη έκδοση.
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
 if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}
