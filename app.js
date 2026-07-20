@@ -32,7 +32,7 @@ localStorage.setItem(DEVICE_ID_KEY,DEVICE_ID);
 let supabaseClient=null, syncReady=false, applyingRemote=false, remoteTimer=null, realtimeChannel=null;
 
 
-function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},dailySchemaVersion:2,sequenceDate:'',sequence:{},lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
+function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},dailySchemaVersion:2,sequenceDate:'',sequence:{},salesOrder:Array.from({length:8},()=>({tank:'',done:false})),lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
 function migrateDailyState(s){
  if(s.dailySchemaVersion===2)return s;
  const migrated={};
@@ -51,7 +51,7 @@ function migrateDailyState(s){
  }
  s.daily=migrated;s.dailySchemaVersion=2;return s
 }
-function loadState(){try{let raw=localStorage.getItem(KEY);if(!raw)for(const k of OLD_KEYS){raw=localStorage.getItem(k);if(raw)break}const p=raw?JSON.parse(raw):{},b=defaultState();return migrateDailyState({...b,...p,dailySchemaVersion:p.dailySchemaVersion||1,lists:{...b.lists,...(p.lists||{})},weeklyDone:p.weeklyDone||{},sequence:p.sequence||{}})}catch{return defaultState()}}
+function loadState(){try{let raw=localStorage.getItem(KEY);if(!raw)for(const k of OLD_KEYS){raw=localStorage.getItem(k);if(raw)break}const p=raw?JSON.parse(raw):{},b=defaultState();return migrateDailyState({...b,...p,dailySchemaVersion:p.dailySchemaVersion||1,lists:{...b.lists,...(p.lists||{})},weeklyDone:p.weeklyDone||{},sequence:p.sequence||{},salesOrder:Array.isArray(p.salesOrder)?p.salesOrder:b.salesOrder})}catch{return defaultState()}}
 function setStatus(text,kind=''){const el=document.getElementById('saveStatus');if(!el)return;el.textContent=text;el.dataset.kind=kind}
 function save(){
  localStorage.setItem(KEY,JSON.stringify(state));
@@ -78,7 +78,7 @@ function applyRemoteState(remote){
  state=migrateDailyState({...base,...remote,dailySchemaVersion:remote.dailySchemaVersion||1,lists:{...base.lists,...(remote.lists||{})},weeklyDone:remote.weeklyDone||{},sequence:remote.sequence||{}});
  localStorage.setItem(KEY,JSON.stringify(state));
  state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());
- initLists();renderWeekly();renderDaily();renderSequence();bindVisualViewportLayout();
+ initLists();renderWeekly();renderDaily();renderSequence();renderSalesOrder();bindVisualViewportLayout();
  applyingRemote=false;
  setStatus('Κοινόχρηστο • ενημερώθηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
 }
@@ -202,6 +202,33 @@ function renderDaily(){
  })
 }
 function renderSequence(){state.sequenceDate=state.sequenceDate||iso(new Date());document.getElementById('sequenceDate').value=state.sequenceDate;const k=seqKey();if(!state.sequence[k])state.sequence[k]=blankSequence();state.sequence[k]=normalizeRows(state.sequence[k],6);const head=document.getElementById('sequenceHead');head.innerHTML='';SEQUENCE_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('sequenceBody');body.innerHTML='';state.sequence[k].forEach((row,ri)=>{const tr=document.createElement('tr');if(row[5]==='ΝΑΙ')tr.classList.add('completed-row');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');if(ci===5){const lab=document.createElement('label');lab.className='sequence-complete';const cb=document.createElement('input');cb.type='checkbox';cb.checked=v==='ΝΑΙ';cb.onchange=()=>{state.sequence[k][ri][ci]=cb.checked?'ΝΑΙ':'';tr.classList.toggle('completed-row',cb.checked);save()};lab.appendChild(cb);td.appendChild(lab)}else{const key=ci===0?'tanks':null;const x=makeInput(v,val=>state.sequence[k][ri][ci]=val,'',key,!!key);td.appendChild(x.wrap)}tr.appendChild(td)});body.appendChild(tr)})}
+
+function normalizeSalesOrder(rows){
+ const source=Array.isArray(rows)?rows:[];
+ const out=source.map(r=>({tank:upper(typeof r==='string'?r:(r?.tank||'')),done:!!(typeof r==='object'&&r?.done)}));
+ while(out.length<8)out.push({tank:'',done:false});
+ return out
+}
+function renderSalesOrder(){
+ state.salesOrder=normalizeSalesOrder(state.salesOrder);
+ const list=document.getElementById('salesOrderList'),empty=document.getElementById('salesOrderEmpty');
+ if(!list)return;list.innerHTML='';
+ const nextIndex=state.salesOrder.findIndex(r=>r.tank&&!r.done);
+ empty.hidden=state.salesOrder.some(r=>r.tank);
+ state.salesOrder.forEach((row,ri)=>{
+  const li=document.createElement('li');li.className='sales-order-row';
+  if(row.done)li.classList.add('sales-order-done');
+  if(ri===nextIndex)li.classList.add('sales-order-current');
+  const number=document.createElement('span');number.className='sales-order-number';number.textContent=ri+1;
+  const x=makeInput(row.tank,val=>{state.salesOrder[ri].tank=val;renderSalesOrder()},'sales-order-input','tanks',true);
+  const controls=document.createElement('div');controls.className='sales-order-controls';
+  const up=document.createElement('button');up.type='button';up.className='order-move';up.textContent='↑';up.title='Μετακίνηση πάνω';up.disabled=ri===0;up.onclick=()=>{[state.salesOrder[ri-1],state.salesOrder[ri]]=[state.salesOrder[ri],state.salesOrder[ri-1]];renderSalesOrder();save()};
+  const down=document.createElement('button');down.type='button';down.className='order-move';down.textContent='↓';down.title='Μετακίνηση κάτω';down.disabled=ri===state.salesOrder.length-1;down.onclick=()=>{[state.salesOrder[ri+1],state.salesOrder[ri]]=[state.salesOrder[ri],state.salesOrder[ri+1]];renderSalesOrder();save()};
+  const done=document.createElement('button');done.type='button';done.className='sales-order-done-btn';done.textContent=row.done?'ΕΠΑΝΑΦΟΡΑ':'ΑΔΕΙΑΣΕ / ΤΕΛΟΣ';done.disabled=!row.tank;done.onclick=()=>{state.salesOrder[ri].done=!state.salesOrder[ri].done;renderSalesOrder();save()};
+  const remove=document.createElement('button');remove.type='button';remove.className='sales-order-remove';remove.textContent='✕';remove.title='Αφαίρεση';remove.onclick=()=>{state.salesOrder.splice(ri,1);state.salesOrder.push({tank:'',done:false});renderSalesOrder();save()};
+  controls.append(up,down,done,remove);li.append(number,x.wrap,controls);list.appendChild(li)
+ })
+}
 function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}}
 function saveLists(show=false){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set(document.getElementById(k+'List').value.split(/\r?\n/).map(x=>upper(x.trim())).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}save();if(show)alert('Οι λίστες αποθηκεύτηκαν αλφαβητικά.')}
 const autoLists=debounce(()=>saveLists(false));
@@ -378,7 +405,10 @@ function bind(){bindTabs();bindClipboardButtons();
  bindPhotoInput('weeklyCamera','weekly');bindPhotoInput('weeklyGallery','weekly');bindPhotoInput('dailyCamera','daily');bindPhotoInput('dailyGallery','daily');bindPhotoInput('sequenceCamera','sequence');bindPhotoInput('sequenceGallery','sequence');
  document.getElementById('insertOcrLines').onclick=insertOcr;document.getElementById('copyOcr').onclick=()=>navigator.clipboard.writeText(document.getElementById('ocrText').value);
  document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(7).fill(''));renderDaily();save()};document.getElementById('addSequenceRow').onclick=()=>{state.sequence[seqKey()].push(Array(6).fill(''));renderSequence();save()};
+ document.getElementById('addSalesOrderRow').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder);state.salesOrder.push({tank:'',done:false});renderSalesOrder();save()};
+ document.getElementById('resetSalesOrderDone').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder).map(r=>({...r,done:false}));renderSalesOrder();save()};
  document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};document.getElementById('clearDaily').onclick=()=>{if(confirm('Να καθαριστεί το καθημερινό;')){state.daily[dayKey()]=blankDaily();renderDaily();save()}};document.getElementById('clearSequence').onclick=()=>{if(confirm('Να καθαριστεί η σειρά φορτώσεων;')){state.sequence[seqKey()]=blankSequence();renderSequence();save()}};
+ document.getElementById('clearSalesOrder').onclick=()=>{if(confirm('Να καθαριστεί η σειρά πώλησης δεξαμενών;')){state.salesOrder=Array.from({length:8},()=>({tank:'',done:false}));renderSalesOrder();save()}};
  document.getElementById('saveLists').onclick=()=>saveLists(true);for(const k of ['clients','tanks','carriers','other'])document.getElementById(k+'List').addEventListener('input',e=>{const p=e.target.selectionStart;e.target.value=upper(e.target.value);try{e.target.setSelectionRange(p,p)}catch{}autoLists()});
  document.getElementById('exportData').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='programma-fortoseon-backup.json';a.click();URL.revokeObjectURL(a.href)};document.getElementById('importData').onchange=async e=>{try{state=JSON.parse(await e.target.files[0].text());save();location.reload()}catch{alert('Μη έγκυρο αρχείο.')}};document.getElementById('eraseAll').onclick=()=>{if(confirm('Οριστική διαγραφή όλων των δεδομένων;')){[KEY,...OLD_KEYS].forEach(k=>localStorage.removeItem(k));location.reload()}};
  window.addEventListener('pagehide',()=>saveLists(false));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLists(false)})
@@ -408,7 +438,7 @@ function bindVisualViewportLayout(){
   resizeTimer=setTimeout(syncVisualViewportLayout,300);
  },{passive:true});
 }
-state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSequence();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
+state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSequence();renderSalesOrder();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
 // Αφαιρεί παλιό service worker/cache ώστε το GitHub Pages να φορτώνει πάντα τη νεότερη έκδοση.
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
 if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}

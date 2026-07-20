@@ -353,3 +353,32 @@ body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;o
 #weeklyDays th.today-day .day-total{background:#198754}
 #weeklyTable.fit-week .day-heading .day-total{font-size:8px;padding:2px 4px}
 @media(max-width:700px){#weeklyDays th{min-height:76px}.day-heading{gap:3px}.day-heading .day-total{font-size:10px;padding:3px 6px}}
+
+/* v3.0 — σειρά πώλησης δεξαμενών */
+.sales-order-wrap{max-width:980px;margin:0 auto;padding:8px}
+.sales-order-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.sales-order-row{display:grid;grid-template-columns:52px minmax(180px,1fr) auto;align-items:center;gap:10px;padding:10px;border:2px solid #b8c3ce;border-radius:14px;background:#fff;transition:background .2s,border-color .2s,box-shadow .2s,transform .2s}
+.sales-order-number{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:#e9eff5;color:#1f3b5b;font-weight:900;font-size:18px}
+.sales-order-row .input-wrap{min-width:0}
+.sales-order-row .client-name-input,.sales-order-row input[type=text]{min-height:52px;font-size:20px;font-weight:800;border:0;background:transparent;padding:8px 10px;white-space:normal;overflow-wrap:anywhere}
+.sales-order-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.sales-order-controls button{min-height:44px}
+.order-move{width:44px;padding:0;font-size:21px}
+.sales-order-done-btn{background:#23466d;color:#fff;border-color:#23466d;font-weight:900}
+.sales-order-remove{width:44px;padding:0;color:#a52b2b}
+.sales-order-current{background:#fff3a8;border-color:#e5a400;box-shadow:0 0 0 4px rgba(229,164,0,.18);transform:scale(1.005)}
+.sales-order-current .sales-order-number{background:#e5a400;color:#111}
+.sales-order-current .sales-order-done-btn{background:#198754;border-color:#198754}
+.sales-order-done{background:#e7f5eb;border-color:#83c595;opacity:.72}
+.sales-order-done .client-name-input{text-decoration:line-through}
+.sales-order-empty{text-align:center;padding:22px;border:2px dashed #aeb9c4;border-radius:12px;color:#5d6975;font-weight:700}
+.sales-order-hint{max-width:980px;margin:8px auto 4px}
+@media(max-width:700px){
+ .sales-order-wrap{padding:6px 4px}
+ .sales-order-row{grid-template-columns:42px minmax(0,1fr);gap:7px;padding:8px}
+ .sales-order-number{width:36px;height:36px;font-size:16px}
+ .sales-order-controls{grid-column:1/-1;display:grid;grid-template-columns:44px 44px minmax(150px,1fr) 44px;width:100%}
+ .sales-order-controls button{margin:0;min-height:46px;padding:6px}
+ .sales-order-row .client-name-input,.sales-order-row input[type=text]{font-size:18px;min-height:50px}
+ .sales-order-current{box-shadow:0 0 0 3px rgba(229,164,0,.22)}
+}
