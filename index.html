@@ -9,17 +9,18 @@
   <meta http-equiv="Expires" content="0" />
   <title>Πρόγραμμα Φορτώσεων</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=3.1.0" />
+  <link rel="stylesheet" href="styles.css?v=3.2.0" />
 </head>
 <body>
 <header class="topbar">
-  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.1</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.4</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
   <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
 </header>
 <nav class="tabs" aria-label="Κύρια πλοήγηση">
   <button class="tab active" data-view="weekly">Εβδομαδιαίο</button>
   <button class="tab" data-view="daily">Καθημερινό</button>
   <button class="tab" data-view="salesOrder">Σειρά πώλησης δεξαμενών</button>
+  <button class="tab" data-view="workProgram">Πρόγραμμα εργασιών</button>
   <button class="tab" data-view="lists">Λίστες / Autocomplete</button>
   <button class="tab" data-view="backup">Αντίγραφο ασφαλείας</button>
   <button class="tab" data-view="settings">Ρυθμίσεις</button>
@@ -63,6 +64,37 @@
     </div>
   </section>
 
+  <section id="workProgram" class="view">
+    <div class="toolbar work-program-toolbar">
+      <label>Ημερομηνία <input type="date" id="workProgramDate" /></label>
+      <label>Βάρδια <select id="workProgramShift"><option value="ΠΡΩΙ">ΠΡΩΙ</option><option value="ΑΠΟΓΕΥΜΑ">ΑΠΟΓΕΥΜΑ</option><option value="ΒΡΑΔΥ">ΒΡΑΔΥ</option></select></label>
+      <button id="clearWorkProgram" class="danger">Καθαρισμός ημέρας</button>
+    </div>
+    <div class="sheet-title">ΠΡΟΓΡΑΜΜΑ ΕΡΓΑΣΙΩΝ</div>
+    <div class="work-program-grid">
+      <article class="work-card">
+        <div class="work-card-head"><h2>Φορτώσεις βυτίων</h2><button id="addLoadingTask">＋ Φόρτωση</button></div>
+        <p class="hint">Συμπλήρωσε εταιρία και όνομα ή αριθμό βυτίου.</p>
+        <div id="loadingTasks" class="task-list"></div>
+      </article>
+      <article class="work-card">
+        <div class="work-card-head"><h2>Χειροκίνητες εργασίες</h2><button id="addManualTask">＋ Εργασία</button></div>
+        <p class="hint">Επίλεξε έτοιμη εργασία από το βελάκι ή γράψε ελεύθερα ό,τι θέλεις.</p>
+        <div id="manualTasks" class="task-list"></div>
+      </article>
+    </div>
+    <article class="work-card shift-log-card">
+      <div class="work-card-head"><h2>Ημερολόγιο βάρδιας</h2></div>
+      <p class="hint">Γράψε παρατηρήσεις, μετρήσεις ή οτιδήποτε συνέβη στη βάρδια.</p>
+      <textarea id="shiftLog" rows="4" placeholder="ΗΜΕΡΟΛΟΓΙΟ ΒΑΡΔΙΑΣ — ΕΛΕΥΘΕΡΟ ΚΕΙΜΕΝΟ"></textarea>
+    </article>
+    <article class="work-card analysis-card">
+      <div class="work-card-head"><h2>Αναλύσεις βάρδιας</h2><span id="analysisShiftLabel" class="shift-badge"></span></div>
+      <p class="hint">Το R-201 εμφανίζεται σε κάθε ώρα. Κάθε συμπληρωμένη μέτρηση γίνεται πράσινη, ώστε να βλέπεις αμέσως τι ολοκληρώθηκε και τι απομένει.</p>
+      <div id="analysisSchedule" class="analysis-schedule"></div>
+    </article>
+  </section>
+
   <section id="lists" class="view">
     <div class="cards">
       <article class="card"><h2>Πελάτες / εταιρείες</h2><textarea id="clientsList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea></article>
@@ -99,5 +131,5 @@
 </main>
 <div class="floating-tools" aria-label="Εργαλεία κελιού"><button type="button" data-copy-cell title="Αντιγραφή">📋</button><button type="button" data-paste-cell title="Επικόλληση">📥</button></div>
 <dialog id="ocrDialog"><form method="dialog" class="ocr-panel"><div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div><p>Η εικόνα δεν αποθηκεύεται. Στο εβδομαδιαίο και καθημερινό αναζητά πελάτες. </p><div class="progress"><div id="ocrBar"></div></div><div id="ocrMessage">Προετοιμασία…</div><textarea id="ocrText" rows="16"></textarea><div class="toolbar"><button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button><button type="button" id="copyOcr">Αντιγραφή κειμένου</button><button value="cancel">Κλείσιμο</button></div></form></dialog>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=3.1.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=3.2.0"></script>
 </body></html>

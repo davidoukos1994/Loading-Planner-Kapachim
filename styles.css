@@ -409,3 +409,33 @@ body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;o
  .sales-metric-box strong{font-size:17px}
  .sales-order-calculator .sales-order-controls{grid-column:auto}
 }
+
+
+/* v3.2 — πρόγραμμα εργασιών και αναλύσεων */
+.work-program-toolbar select{min-height:44px;border:1px solid #aab6c2;border-radius:9px;background:#fff;padding:7px 10px;font:inherit;font-weight:800}
+.work-program-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.work-card{background:#fff;border:1px solid #bdc7d1;border-radius:14px;padding:12px;box-shadow:0 2px 8px rgba(31,59,91,.08)}
+.work-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}.work-card-head h2{margin:0;font-size:20px;color:#1f3b5b}
+.task-list{display:grid;gap:8px}.task-row{display:grid;align-items:center;gap:7px;padding:7px;border:1px solid #cad2da;border-radius:10px;background:#f8fafc}.loading-task{grid-template-columns:36px minmax(130px,1fr) minmax(150px,1.3fr) 42px}.manual-task{grid-template-columns:36px minmax(0,1fr) 42px}
+.task-row>input[type=checkbox]{width:28px;height:28px}.task-row>input[type=text]{width:100%;min-height:46px;border:1px solid #aeb9c4;border-radius:8px;padding:8px 10px;font:inherit;font-size:17px;background:#fff}.task-remove{width:42px;min-height:42px;padding:0;color:#a52b2b}.task-done{background:#e7f5eb;opacity:.75}.task-done input[type=text]{text-decoration:line-through}
+.analysis-card{margin-top:12px}.shift-badge{display:inline-flex;padding:6px 10px;border-radius:999px;background:#23466d;color:#fff;font-weight:800}.analysis-schedule{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.analysis-slot{border:2px solid #b8c3ce;border-radius:12px;overflow:hidden;background:#f8fafc}.analysis-slot-head{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#23466d;color:#fff}.analysis-slot-head strong{font-size:22px}.analysis-slot-head span{font-weight:800}.analysis-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:9px}.analysis-result{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:900;color:#34485c}.analysis-result textarea{width:100%;min-height:54px;resize:vertical;border:1px solid #aab6c2;border-radius:8px;padding:9px;font:inherit;font-size:16px;background:#fff;color:#18232d}
+@media(max-width:700px){.work-program-grid{grid-template-columns:1fr}.work-card{padding:9px}.work-card-head h2{font-size:18px}.loading-task{grid-template-columns:34px minmax(0,1fr) 42px}.loading-task>input:nth-of-type(3){grid-column:2/3}.analysis-schedule{grid-template-columns:1fr}.analysis-grid{grid-template-columns:1fr 1fr}.analysis-result textarea{font-size:16px;min-height:58px}.work-program-toolbar label{width:auto}}
+
+/* v3.3 — ειδικές μετρήσεις, έτοιμες εργασίες και ημερολόγιο βάρδιας */
+.manual-task{grid-template-columns:36px minmax(170px,.8fr) minmax(220px,1.4fr) 42px}
+.task-preset-select{width:100%;min-height:46px;border:1px solid #aeb9c4;border-radius:8px;background:#fff;padding:8px;font:inherit;font-weight:800;color:#20364a}
+.analysis-result{border:1px solid #c6d0da;border-radius:10px;background:#fff;padding:8px;gap:7px}
+.analysis-name{font-size:15px;color:#20364a}
+.analysis-measure{display:flex;flex-direction:column;gap:3px}
+.analysis-measure>span{font-size:11px;font-weight:900;color:#586a7c}
+.analysis-measure input,.shift-log-card textarea{width:100%;border:1px solid #aab6c2;border-radius:8px;padding:9px;font:inherit;font-size:16px;background:#fff;color:#18232d;transition:background .15s,border-color .15s,box-shadow .15s}
+.completed-field{background:#dcf7e4!important;border-color:#2f9651!important;box-shadow:inset 0 0 0 1px #2f9651}
+.shift-log-card{margin-top:12px}.shift-log-card textarea{resize:vertical;min-height:110px}
+@media(max-width:700px){.manual-task{grid-template-columns:34px minmax(0,1fr) 42px}.task-preset-select{grid-column:2/3}.manual-task>input[type=text]{grid-column:2/3}.analysis-grid{grid-template-columns:1fr}.analysis-result{padding:9px}}
+
+/* v3.4 — σωστές μονάδες, R-201 σε κάθε ώρα και πρόοδος αναλύσεων */
+.analysis-result.analysis-complete{background:#e5f7ea;border-color:#2f9651;box-shadow:inset 0 0 0 1px #2f9651}
+.analysis-result.analysis-complete .analysis-name{color:#176b34}
+.analysis-slot.analysis-slot-complete{border-color:#2f9651;box-shadow:0 0 0 2px rgba(47,150,81,.15)}
+.analysis-slot.analysis-slot-complete .analysis-slot-head{background:#23743d}
+.analysis-progress{font-size:13px;font-weight:900;white-space:nowrap}
