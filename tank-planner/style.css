@@ -39,3 +39,7 @@ button{background:var(--purple);color:white;border:0;font-weight:800} button.sec
 .breakdown small{display:block;color:var(--purple);font-size:11px;margin-top:2px}
 .breakdown .wide{grid-column:span 2;background:#fff7d1}
 @media(max-width:850px){.tankers-btns{grid-template-columns:repeat(2,1fr)}.breakdown .wide{grid-column:span 2}}
+
+/* v4.1: το πρόγραμμα γεμίσματος εμφανίζεται πρώτο */
+.schedule-panel-top{margin-top:0;border:2px solid rgba(123,44,191,.35)}
+.schedule-panel-top h2{margin-top:0}

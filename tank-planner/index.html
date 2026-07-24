@@ -10,16 +10,21 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=3.7.0" />
-  <title>NaOCl Storage</title>
+  <link rel="stylesheet" href="style.css?v=4.1.0" />
+  <title>Πρόγραμμα Δεξαμενών Υποχλωριώδους Νατρίου</title>
 </head>
 <body>
   <header>
-    <h1>HYPOCHLORITE STORAGE</h1>
-    <p>Υπολογισμός γεμίσματος δεξαμενών NaOCl</p>
+    <h1>ΠΡΟΓΡΑΜΜΑ ΔΕΞΑΜΕΝΩΝ ΥΠΟΧΛΩΡΙΩΔΟΥΣ ΝΑΤΡΙΟΥ</h1>
+    <p>Υπολογισμός χρόνου γεμίσματος δεξαμενών NaOCl</p>
   </header>
 
   <main>
+    <section class="panel schedule-panel schedule-panel-top">
+      <h2>Πρόγραμμα γεμίσματος</h2>
+      <div id="schedule" class="schedule"></div>
+    </section>
+
     <section class="panel top-panel">
       <label>Παραγωγή kg/hr
         <input id="production" type="text" inputmode="text" placeholder="π.χ. 6824 ή 6824,5" />
@@ -48,12 +53,8 @@
 
     <section id="tanks" class="tank-grid"></section>
 
-    <section class="panel">
-      <h2>Πρόγραμμα γεμίσματος</h2>
-      <div id="schedule" class="schedule"></div>
-    </section>
   </main>
 
-  <script src="app.js?v=3.7.0?v=v8-display-order-1"></script>
+  <script src="app.js?v=4.1.0"></script>
 </body>
 </html>
