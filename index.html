@@ -2,151 +2,134 @@
 <html lang="el">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0d1726" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="FitPlanner" />
-  <title>FitPlanner</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=2.0.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1f3b5b" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Πρόγραμμα Φορτώσεων</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css?v=3.2.0" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">ΠΡΟΣΩΠΙΚΟ ΗΜΕΡΟΛΟΓΙΟ ΓΥΜΝΑΣΤΙΚΗΣ</div>
-        <h1>FitPlanner <small class="version-mark">v2.0</small></h1>
+<header class="topbar">
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.5</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
+</header>
+<nav class="tabs" aria-label="Κύρια πλοήγηση">
+  <button class="tab active" data-view="weekly">Εβδομαδιαίο</button>
+  <button class="tab" data-view="daily">Καθημερινό</button>
+  <button class="tab" data-view="salesOrder">Σειρά πώλησης δεξαμενών</button>
+  <button class="tab" data-view="workProgram">Πρόγραμμα εργασιών</button>
+  <button class="tab" data-view="lists">Λίστες / Autocomplete</button>
+  <button class="tab" data-view="backup">Αντίγραφο ασφαλείας</button>
+  <button class="tab" data-view="settings">Ρυθμίσεις</button>
+</nav>
+<main>
+  <section id="weekly" class="view active">
+    <div class="toolbar">
+      <label>Εβδομάδα από <input type="date" id="weekStart" /></label>
+      <button id="weeklyCameraBtn">📷 Κάμερα</button><input type="file" id="weeklyCamera" accept="image/*" capture="environment" hidden />
+      <button id="weeklyGalleryBtn">🖼️ Συλλογή</button><input type="file" id="weeklyGallery" accept="image/*" hidden />
+      <button id="toggleWeekFit">↔ Όλη η εβδομάδα</button><button id="clearWeekly" class="danger">Καθαρισμός εβδομάδας</button><button onclick="window.print()">Εκτύπωση</button>
+    </div>
+    <div class="sheet-wrap"><table class="excel weekly-sheet" id="weeklyTable">
+      <thead><tr><th class="row-label"><div class="week-label-wrap"><span>ΕΒΔΟΜΑΔΑ</span><span class="week-total" id="weekTotal">ΣΥΝΟΛΟ ΒΥΤΙΩΝ: 0</span></div></th><th colspan="7" id="weekRange">—</th></tr><tr id="weeklyDays"><th class="row-label">ΗΜΕΡΑ</th></tr></thead>
+      <tbody id="weeklyBody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="daily" class="view">
+    <div class="toolbar">
+      <label>Ημερομηνία <input type="date" id="dailyDate" /></label>
+      <button id="dailyCameraBtn">📷 Κάμερα</button><input type="file" id="dailyCamera" accept="image/*" capture="environment" hidden />
+      <button id="dailyGalleryBtn">🖼️ Συλλογή</button><input type="file" id="dailyGallery" accept="image/*" hidden />
+      <button id="addDailyRow">＋ Νέα γραμμή</button><button id="clearDaily" class="danger">Καθαρισμός ημέρας</button><button onclick="window.print()">Εκτύπωση</button>
+    </div>
+    <div class="sheet-title">ΚΑΘΗΜΕΡΙΝΟ ΠΡΟΓΡΑΜΜΑ ΦΟΡΤΩΣΕΩΝ</div>
+    <div class="sheet-wrap"><table class="excel daily-sheet" id="dailyTable"><thead><tr id="dailyHead"></tr></thead><tbody id="dailyBody"></tbody></table></div>
+  </section>
+
+  <section id="salesOrder" class="view">
+    <div class="toolbar">
+      <button id="addSalesOrderRow">＋ Νέα δεξαμενή</button>
+      <button id="resetSalesOrderDone" class="secondary">Επαναφορά ολοκληρώσεων</button>
+      <button id="clearSalesOrder" class="danger">Καθαρισμός σειράς</button>
+    </div>
+    <div class="sheet-title">ΣΕΙΡΑ ΠΩΛΗΣΗΣ ΔΕΞΑΜΕΝΩΝ</div>
+    <p class="hint sales-order-hint">Η έντονα χρωματισμένη γραμμή είναι η επόμενη δεξαμενή. Συμπλήρωσε στάθμη, αριθμό βυτίων και τόνους ανά βυτίο. Όταν το υπόλοιπο μηδενιστεί, η δεξαμενή ολοκληρώνεται αυτόματα και επισημαίνεται η επόμενη.</p>
+    <div class="sales-order-wrap">
+      <div id="salesOrderEmpty" class="sales-order-empty" hidden>Δεν έχεις βάλει ακόμη δεξαμενές στη σειρά.</div>
+      <ol id="salesOrderList" class="sales-order-list"></ol>
+    </div>
+  </section>
+
+  <section id="workProgram" class="view">
+    <div class="toolbar work-program-toolbar">
+      <label>Ημερομηνία <input type="date" id="workProgramDate" /></label>
+      <label>Βάρδια <select id="workProgramShift"><option value="ΠΡΩΙ">ΠΡΩΙ</option><option value="ΑΠΟΓΕΥΜΑ">ΑΠΟΓΕΥΜΑ</option><option value="ΒΡΑΔΥ">ΒΡΑΔΥ</option></select></label>
+      <button id="clearWorkProgram" class="danger">Καθαρισμός ημέρας</button>
+    </div>
+    <div class="sheet-title">ΠΡΟΓΡΑΜΜΑ ΕΡΓΑΣΙΩΝ</div>
+    <div class="work-program-grid">
+      <article class="work-card">
+        <div class="work-card-head"><h2>Φορτώσεις βυτίων</h2><button id="addLoadingTask">＋ Φόρτωση</button></div>
+        <p class="hint">Συμπλήρωσε πελάτη ή εταιρία, όνομα ή αριθμό βυτίου και τη δεξαμενή που θα γεμίσει.</p>
+        <div id="loadingTasks" class="task-list"></div>
+      </article>
+      <article class="work-card">
+        <div class="work-card-head"><h2>Χειροκίνητες εργασίες</h2><button id="addManualTask">＋ Εργασία</button></div>
+        <p class="hint">Επίλεξε έτοιμη εργασία από το βελάκι ή γράψε ελεύθερα ό,τι θέλεις.</p>
+        <div id="manualTasks" class="task-list"></div>
+      </article>
+    </div>
+    <article class="work-card shift-log-card">
+      <div class="work-card-head"><h2>Ημερολόγιο βάρδιας</h2></div>
+      <p class="hint">Γράψε παρατηρήσεις, μετρήσεις ή οτιδήποτε συνέβη στη βάρδια.</p>
+      <textarea id="shiftLog" rows="4" placeholder="ΗΜΕΡΟΛΟΓΙΟ ΒΑΡΔΙΑΣ — ΕΛΕΥΘΕΡΟ ΚΕΙΜΕΝΟ"></textarea>
+    </article>
+    <article class="work-card analysis-card">
+      <div class="work-card-head"><h2>Αναλύσεις βάρδιας</h2><span id="analysisShiftLabel" class="shift-badge"></span></div>
+      <p class="hint">Το R-201 εμφανίζεται σε κάθε ώρα. Κάθε συμπληρωμένη μέτρηση γίνεται πράσινη, ώστε να βλέπεις αμέσως τι ολοκληρώθηκε και τι απομένει.</p>
+      <div id="analysisSchedule" class="analysis-schedule"></div>
+    </article>
+  </section>
+
+  <section id="lists" class="view">
+    <div class="cards">
+      <article class="card"><h2>Πελάτες / εταιρείες</h2><textarea id="clientsList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea></article>
+      <article class="card"><h2>Δεξαμενές / προϊόντα</h2><textarea id="tanksList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea></article>
+      <article class="card"><h2>Μεταφορείς</h2><textarea id="carriersList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea></article>
+      <article class="card"><h2>Υπεύθυνοι / άλλες ονομασίες</h2><textarea id="otherList" rows="12" placeholder="Μία ονομασία ανά γραμμή"></textarea></article>
+    </div>
+    <div class="toolbar"><button id="saveLists">Αποθήκευση λιστών</button><span class="list-save-status" id="listSaveStatus">Αποθηκεύονται αυτόματα</span></div>
+    <p class="hint">Γράψε τα πρώτα γράμματα για φιλτραρισμένες προτάσεις ή πάτησε ▾ για ολόκληρη την αλφαβητική λίστα. Μπορείς επίσης να αντιγράψεις και να επικολλήσεις το επιλεγμένο κελί.</p>
+  </section>
+
+  <section id="backup" class="view"><div class="card narrow"><h2>Αντίγραφο ασφαλείας δεδομένων</h2><p>Τα προγράμματα αποθηκεύονται τοπικά και συγχρονίζονται στην κοινόχρηστη βάση Supabase.</p><div class="stack"><button id="exportData">Λήψη αντιγράφου (.json)</button><label class="file-label">Επαναφορά από αρχείο<input type="file" id="importData" accept="application/json" hidden /></label><button id="eraseAll" class="danger">Διαγραφή όλων των δεδομένων</button></div></div></section>
+
+  <section id="settings" class="view">
+    <div class="card settings-card">
+      <h2>Ρυθμίσεις κοινής χρήσης</h2>
+      <p>Οι ρυθμίσεις είναι ήδη συμπληρωμένες. Συνήθως δεν χρειάζεται να τις αλλάξεις ξανά. Οι φωτογραφίες δεν αποθηκεύονται στο Supabase.</p>
+      <label class="settings-field">Supabase Project URL
+        <input id="settingsSupabaseUrl" type="url" autocomplete="off" spellcheck="false" />
+      </label>
+      <label class="settings-field">Publishable key
+        <div class="key-row"><input id="settingsSupabaseKey" type="password" autocomplete="off" spellcheck="false" /><button type="button" id="toggleSupabaseKey">Εμφάνιση</button></div>
+      </label>
+      <div class="toolbar">
+        <button id="saveConnectionSettings">Αποθήκευση & σύνδεση</button>
+        <button id="testConnection">Έλεγχος σύνδεσης</button>
+        <button id="resetConnectionSettings" class="secondary">Επαναφορά προεπιλογών</button>
       </div>
-      <button class="icon-btn" id="themeBtn" aria-label="Αλλαγή εμφάνισης">◐</button>
-    </header>
+      <div id="connectionResult" class="connection-result" data-kind="idle">Δεν έχει γίνει ακόμη έλεγχος.</div>
+      <p class="hint">Για τις επόμενες αναβαθμίσεις θα ανεβάζεις μόνο τα αρχεία του νέου ZIP στο GitHub. Το Supabase θα χρειαστεί ξανά μόνο αν προστεθεί νέα βάση ή νέος πίνακας.</p>
+    </div>
+  </section>
 
-    <main>
-      <section class="view active" data-view="home">
-        <div class="profile-strip card">
-          <div class="profile-avatar" id="activeAvatar">Α</div>
-          <div class="grow">
-            <div class="muted small">Ενεργό προφίλ</div>
-            <h2 id="activeName">Αλέξανδρος</h2>
-            <div class="muted" id="activeSummary">Δεν έχουν συμπληρωθεί στοιχεία</div>
-          </div>
-          <button class="secondary" data-go="people">Άτομα</button>
-        </div>
-
-        <div class="hero card">
-          <div>
-            <div class="eyebrow">ΣΗΜΕΡΑ</div>
-            <h2 id="todayTitle">Η σημερινή προπόνηση</h2>
-            <p id="todaySubtitle">Δημιούργησε πρόγραμμα ή πάρε αυτόματη πρόταση.</p>
-          </div>
-          <button class="primary large" id="startTodayBtn">Ξεκίνα προπόνηση</button>
-        </div>
-
-        <div class="stats-grid">
-          <article class="stat card"><span>Προπονήσεις μήνα</span><strong id="monthWorkouts">0</strong></article>
-          <article class="stat card"><span>Τρέχον βάρος</span><strong id="currentWeight">—</strong></article>
-          <article class="stat card"><span>Συνέπεια</span><strong id="streak">0 εβδομ.</strong></article>
-          <article class="stat card"><span>Επόμενος στόχος</span><strong id="nextGoal">Ορισμός</strong></article>
-        </div>
-
-        <div class="section-head"><h3>Γρήγορες ενέργειες</h3></div>
-        <div class="quick-grid">
-          <button class="quick card" data-go="calendar"><span>📅</span><b>Ημερολόγιο</b><small>Προγραμμάτισε ημέρες</small></button>
-          <button class="quick card" data-go="programs"><span>🏋️</span><b>Προγράμματα</b><small>Έτοιμα ή δικά σου</small></button>
-          <button class="quick card" data-go="measurements"><span>📏</span><b>Μετρήσεις</b><small>Βάρος και αναλογίες</small></button>
-          <button class="quick card" id="suggestBtn"><span>✨</span><b>Πρόταση</b><small>Αυτόματο πρόγραμμα</small></button>
-        </div>
-      </section>
-
-      <section class="view" data-view="people">
-        <div class="section-head"><div><div class="eyebrow">ΠΡΟΦΙΛ</div><h2>Άτομα</h2></div><button class="primary" id="addPersonBtn">+ Νέο άτομο</button></div>
-        <div id="peopleGrid" class="people-grid"></div>
-      </section>
-
-      <section class="view" data-view="calendar">
-        <div class="section-head"><div><div class="eyebrow">ΠΡΟΓΡΑΜΜΑ</div><h2>Ημερολόγιο</h2></div><button class="secondary" id="calendarTodayBtn">Σήμερα</button></div>
-        <div class="calendar-card card">
-          <div class="calendar-toolbar"><button id="prevMonth">‹</button><h3 id="calendarMonth"></h3><button id="nextMonth">›</button></div>
-          <div class="weekdays"><span>ΔΕ</span><span>ΤΡ</span><span>ΤΕ</span><span>ΠΕ</span><span>ΠΑ</span><span>ΣΑ</span><span>ΚΥ</span></div>
-          <div id="calendarGrid" class="calendar-grid"></div>
-        </div>
-        <div class="card" id="dayPanel">
-          <div class="section-head compact"><h3 id="selectedDateTitle">Επίλεξε ημέρα</h3><button class="primary" id="addDayWorkoutBtn">+ Προπόνηση</button></div>
-          <div id="dayEntries" class="stack"></div>
-        </div>
-      </section>
-
-      <section class="view" data-view="programs">
-        <div class="section-head"><div><div class="eyebrow">ΑΣΚΗΣΕΙΣ</div><h2>Προγράμματα</h2></div><button class="primary" id="newProgramBtn">+ Νέο πρόγραμμα</button></div>
-        <div class="filters program-tabs" aria-label="Κατηγορίες προγραμμάτων">
-          <button class="chip active" data-filter="all">Όλα</button>
-          <button class="chip" data-filter="chest">Στήθος</button>
-          <button class="chip" data-filter="back">Πλάτη</button>
-          <button class="chip" data-filter="shoulders">Ώμοι</button>
-          <button class="chip" data-filter="legs">Πόδια</button>
-          <button class="chip" data-filter="abs">Κοιλιακοί</button>
-          <button class="chip" data-filter="full">Όλο το σώμα</button>
-          <button class="chip" data-filter="home">Σπίτι</button>
-          <button class="chip" data-filter="gym">Γυμναστήριο</button>
-        </div>
-        <div id="programGrid" class="program-grid"></div>
-      </section>
-
-      <section class="view" data-view="measurements">
-        <div class="section-head"><div><div class="eyebrow">ΠΡΟΟΔΟΣ</div><h2>Μετρήσεις σώματος</h2></div><button class="primary" id="addMeasurementBtn">+ Καταχώριση</button></div>
-        <div class="assessment-grid">
-          <article class="card assessment"><span>BMI</span><strong id="bmiValue">—</strong><small id="bmiLabel">Συμπλήρωσε ύψος και βάρος</small></article>
-          <article class="card assessment"><span>Ενδεικτικό εύρος βάρους</span><strong id="weightRange">—</strong><small>Με βάση BMI 18,5–24,9</small></article>
-          <article class="card assessment"><span>Μέση / Ύψος</span><strong id="whrValue">—</strong><small id="whrLabel">Πρόσθεσε περίμετρο μέσης</small></article>
-        </div>
-        <div class="card progress-chart-card">
-          <div class="section-head compact"><h3>Διάγραμμα βάρους</h3></div>
-          <div id="weightChart" class="weight-chart" aria-label="Διάγραμμα εξέλιξης βάρους"></div>
-        </div>
-        <div class="card">
-          <div class="section-head compact"><h3>Ιστορικό</h3></div>
-          <div id="measurementHistory" class="stack"></div>
-        </div>
-        <div class="notice">Οι υπολογισμοί είναι ενδεικτικοί και δεν αποτελούν ιατρική διάγνωση. Οι ανάγκες διαφέρουν ανάλογα με τη μυϊκή μάζα, την υγεία και άλλους παράγοντες.</div>
-      </section>
-
-      <section class="view" data-view="profile">
-        <div class="section-head"><div><div class="eyebrow">ΡΥΘΜΙΣΕΙΣ</div><h2>Προφίλ και στόχοι</h2></div><button class="primary" id="saveProfileBtn">Αποθήκευση</button></div>
-        <form id="profileForm" class="form-grid card">
-          <label>Όνομα<input name="name" required /></label>
-          <label>Ημερομηνία γέννησης
-            <input type="hidden" name="birthdate" id="birthdateHidden" />
-            <div class="date-parts"><select id="birthDay" aria-label="Ημέρα"></select><select id="birthMonth" aria-label="Μήνας"></select><select id="birthYear" aria-label="Έτος"></select></div>
-          </label>
-          <label>Φύλο<select name="sex"><option value="">Δεν δηλώνεται</option><option value="male">Άνδρας</option><option value="female">Γυναίκα</option></select></label>
-          <label>Ύψος (cm)<input type="number" inputmode="decimal" name="height" min="100" max="250" /></label>
-          <label>Βάρος (kg)<input type="number" inputmode="decimal" step="0.1" name="weight" min="30" max="350" /></label>
-          <label>Μέση (cm)<input type="number" inputmode="decimal" step="0.1" name="waist" /></label>
-          <label>Επίπεδο<select name="level"><option value="beginner">Αρχάριος</option><option value="intermediate">Μέτριος</option><option value="advanced">Προχωρημένος</option></select></label>
-          <label>Χώρος<select name="place"><option value="gym">Γυμναστήριο</option><option value="home">Σπίτι</option><option value="both">Και τα δύο</option></select></label>
-          <label>Ημέρες / εβδομάδα<input type="number" name="days" min="1" max="7" value="3" /></label>
-          <label>Χρόνος / προπόνηση<select name="duration"><option value="20">20 λεπτά</option><option value="30">30 λεπτά</option><option value="45" selected>45 λεπτά</option><option value="60">60 λεπτά</option><option value="75">75 λεπτά</option></select></label>
-          <label class="span-2">Κύριος στόχος<select name="goal"><option value="general">Γενική φυσική κατάσταση</option><option value="fatloss">Απώλεια λίπους</option><option value="muscle">Μυϊκή ανάπτυξη</option><option value="strength">Δύναμη</option><option value="endurance">Αντοχή</option><option value="mobility">Κινητικότητα</option></select></label>
-          <label class="span-2">Τραυματισμοί / περιορισμοί<textarea name="limitations" rows="3" placeholder="π.χ. αποφυγή άλματος, ενόχληση στο γόνατο"></textarea></label>
-        </form>
-        <div class="card backup-card">
-          <div><h3>Backup δεδομένων</h3><p class="muted">Μεταφορά όλων των προφίλ σε άλλη συσκευή.</p></div>
-          <div class="actions"><button class="secondary" id="exportBtn">Εξαγωγή</button><label class="secondary file-label">Εισαγωγή<input type="file" id="importInput" accept="application/json" hidden /></label></div>
-        </div>
-      </section>
-    </main>
-
-    <nav class="bottom-nav">
-      <button class="active" data-go="home"><span>⌂</span><small>Αρχική</small></button>
-      <button data-go="calendar"><span>▦</span><small>Ημερολόγιο</small></button>
-      <button data-go="programs"><span>◆</span><small>Προγράμματα</small></button>
-      <button data-go="measurements"><span>↗</span><small>Πρόοδος</small></button>
-      <button data-go="profile"><span>●</span><small>Προφίλ</small></button>
-    </nav>
-  </div>
-
-  <dialog id="modal"><form method="dialog" id="modalForm"><div id="modalContent"></div></form></dialog>
-  <div id="toast"></div>
-  <script src="app.js?v=2.0.0"></script>
-</body>
-</html>
+</main>
+<div class="floating-tools" aria-label="Εργαλεία κελιού"><button type="button" data-copy-cell title="Αντιγραφή">📋</button><button type="button" data-paste-cell title="Επικόλληση">📥</button></div>
+<dialog id="ocrDialog"><form method="dialog" class="ocr-panel"><div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div><p>Η εικόνα δεν αποθηκεύεται. Στο εβδομαδιαίο και καθημερινό αναζητά πελάτες. </p><div class="progress"><div id="ocrBar"></div></div><div id="ocrMessage">Προετοιμασία…</div><textarea id="ocrText" rows="16"></textarea><div class="toolbar"><button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button><button type="button" id="copyOcr">Αντιγραφή κειμένου</button><button value="cancel">Κλείσιμο</button></div></form></dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=3.2.0"></script>
+</body></html>
