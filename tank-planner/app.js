@@ -271,5 +271,5 @@ qs('startTime').addEventListener('input', updateSchedule);
 qs('nowBtn').onclick=()=>{state.startTime=toLocalInput(new Date()); save(); render();};
 qs('saveBtn').onclick=()=>{save(); alert('Αποθηκεύτηκε στη συσκευή.');};
 qs('resetBtn').onclick=()=>{ if(confirm('Να γίνει reset στα αρχικά δεδομένα;')){localStorage.removeItem(STORAGE_KEY); OLD_KEYS.forEach(k=>localStorage.removeItem(k)); state={production:'6824',startTime:toLocalInput(new Date()),tanks:structuredClone(defaultTanks)}; render(); }};
-if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+
 render();

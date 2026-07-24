@@ -9,11 +9,11 @@
   <meta http-equiv="Expires" content="0" />
   <title>Πρόγραμμα Φορτώσεων</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=3.2.0" />
+  <link rel="stylesheet" href="styles.css?v=3.7.0" />
 </head>
 <body>
 <header class="topbar">
-  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.6</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.7</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
   <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
 </header>
 <nav class="tabs" aria-label="Κύρια πλοήγηση">
@@ -54,7 +54,7 @@
     <div class="sheet-title">ΠΡΟΓΡΑΜΜΑ ΔΕΞΑΜΕΝΩΝ ΥΠΟΧΛΩΡΙΩΔΟΥΣ</div>
     <p class="hint">Η εφαρμογή δεξαμενών λειτουργεί μέσα σε αυτή την καρτέλα και διατηρεί τα δικά της αποθηκευμένα δεδομένα.</p>
     <div class="embedded-app-wrap">
-      <iframe class="embedded-tank-app" src="tank-planner/index.html" title="Πρόγραμμα δεξαμενών υποχλωριώδους" loading="eager"></iframe>
+      <iframe class="embedded-tank-app" src="tank-planner/index.html?v=3.7.0" title="Πρόγραμμα δεξαμενών υποχλωριώδους" loading="eager"></iframe>
     </div>
     <div class="legacy-sales-order" hidden aria-hidden="true">
       <button id="addSalesOrderRow" type="button">＋ Νέα δεξαμενή</button>
@@ -132,5 +132,20 @@
 </main>
 <div class="floating-tools" aria-label="Εργαλεία κελιού"><button type="button" data-copy-cell title="Αντιγραφή">📋</button><button type="button" data-paste-cell title="Επικόλληση">📥</button></div>
 <dialog id="ocrDialog"><form method="dialog" class="ocr-panel"><div class="dialog-head"><h2>Ανάγνωση φωτογραφίας</h2><button value="cancel" aria-label="Κλείσιμο">✕</button></div><p>Η εικόνα δεν αποθηκεύεται. Στο εβδομαδιαίο και καθημερινό αναζητά πελάτες. </p><div class="progress"><div id="ocrBar"></div></div><div id="ocrMessage">Προετοιμασία…</div><textarea id="ocrText" rows="16"></textarea><div class="toolbar"><button type="button" id="insertOcrLines">Πέρασμα πελατών στα κελιά</button><button type="button" id="copyOcr">Αντιγραφή κειμένου</button><button value="cancel">Κλείσιμο</button></div></form></dialog>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=3.2.0"></script>
+<script>
+// Αποφυγή παλιάς έκδοσης από service worker/cache μετά από αναβάθμιση στο GitHub.
+(async function refreshOldAppCache(){
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map(n => caches.delete(n)));
+    }
+  } catch (_) {}
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=3.7.0"></script>
 </body></html>
