@@ -13,7 +13,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.5</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">v3.6</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
   <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
 </header>
 <nav class="tabs" aria-label="Κύρια πλοήγηση">
@@ -51,16 +51,17 @@
   </section>
 
   <section id="salesOrder" class="view">
-    <div class="toolbar">
-      <button id="addSalesOrderRow">＋ Νέα δεξαμενή</button>
-      <button id="resetSalesOrderDone" class="secondary">Επαναφορά ολοκληρώσεων</button>
-      <button id="clearSalesOrder" class="danger">Καθαρισμός σειράς</button>
+    <div class="sheet-title">ΠΡΟΓΡΑΜΜΑ ΔΕΞΑΜΕΝΩΝ ΥΠΟΧΛΩΡΙΩΔΟΥΣ</div>
+    <p class="hint">Η εφαρμογή δεξαμενών λειτουργεί μέσα σε αυτή την καρτέλα και διατηρεί τα δικά της αποθηκευμένα δεδομένα.</p>
+    <div class="embedded-app-wrap">
+      <iframe class="embedded-tank-app" src="tank-planner/index.html" title="Πρόγραμμα δεξαμενών υποχλωριώδους" loading="eager"></iframe>
     </div>
-    <div class="sheet-title">ΣΕΙΡΑ ΠΩΛΗΣΗΣ ΔΕΞΑΜΕΝΩΝ</div>
-    <p class="hint sales-order-hint">Η έντονα χρωματισμένη γραμμή είναι η επόμενη δεξαμενή. Συμπλήρωσε στάθμη, αριθμό βυτίων και τόνους ανά βυτίο. Όταν το υπόλοιπο μηδενιστεί, η δεξαμενή ολοκληρώνεται αυτόματα και επισημαίνεται η επόμενη.</p>
-    <div class="sales-order-wrap">
-      <div id="salesOrderEmpty" class="sales-order-empty" hidden>Δεν έχεις βάλει ακόμη δεξαμενές στη σειρά.</div>
-      <ol id="salesOrderList" class="sales-order-list"></ol>
+    <div class="legacy-sales-order" hidden aria-hidden="true">
+      <button id="addSalesOrderRow" type="button">＋ Νέα δεξαμενή</button>
+      <button id="resetSalesOrderDone" type="button">Επαναφορά ολοκληρώσεων</button>
+      <button id="clearSalesOrder" type="button">Καθαρισμός σειράς</button>
+      <div id="salesOrderEmpty" hidden></div>
+      <ol id="salesOrderList"></ol>
     </div>
   </section>
 

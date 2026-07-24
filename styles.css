@@ -459,3 +459,8 @@ body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;o
  .loading-field .cell-input,.loading-field>input{font-size:18px;min-height:52px}
  .loading-field textarea.cell-input{min-height:54px}
 }
+
+/* v3.6 — Ενσωματωμένη εφαρμογή δεξαμενών */
+.embedded-app-wrap{width:100%;border:1px solid #c7d2df;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(20,45,75,.08)}
+.embedded-tank-app{display:block;width:100%;height:1500px;border:0;background:#fff}
+@media (max-width:700px){.embedded-app-wrap{border-radius:12px}.embedded-tank-app{height:1850px}}

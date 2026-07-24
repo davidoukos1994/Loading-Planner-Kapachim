@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2b003f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="NaOCl Tanks" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <title>NaOCl Storage</title>
+</head>
+<body>
+  <header>
+    <h1>HYPOCHLORITE STORAGE</h1>
+    <p>Υπολογισμός γεμίσματος δεξαμενών NaOCl</p>
+  </header>
+
+  <main>
+    <section class="panel top-panel">
+      <label>Παραγωγή kg/hr
+        <input id="production" type="text" inputmode="text" placeholder="π.χ. 6824 ή 6824,5" />
+      </label>
+      <label>Ημερομηνία / Ώρα έναρξης
+        <input id="startTime" type="datetime-local" />
+      </label>
+      <button id="nowBtn" type="button">Τώρα</button>
+      <button id="saveBtn" type="button">Αποθήκευση βάρδιας</button>
+      <button id="resetBtn" type="button">Reset</button>
+    </section>
+
+    <section class="summary two">
+      <div><span>Σύνολο με προσθήκη βυτίων</span><strong id="totalNow">-</strong></div>
+      <div><span>Πότε φτάνουν όλοι οι στόχοι</span><strong id="allFullTime">-</strong></div>
+    </section>
+
+    <section class="panel compact">
+      <h2>Άθροισμα ανά δεξαμενή</h2>
+      <div id="totalBreakdown" class="breakdown"></div>
+    </section>
+
+    <section class="legend">
+      <span>Για κάθε δεξαμενή μπορείς να βάλεις 1η σειρά + 1ο στόχο m και 2η σειρά + 2ο στόχο m. Παράδειγμα D1: 1η σειρά 1 / στόχος 2,0m και 2η σειρά 5 / στόχος 6,2m. Στη 2η πλήρωση ξεκινά από 0. Η παλιά σειρά/στόχοι παραμένουν για συμβατότητα.</span>
+    </section>
+
+    <section id="tanks" class="tank-grid"></section>
+
+    <section class="panel">
+      <h2>Πρόγραμμα γεμίσματος</h2>
+      <div id="schedule" class="schedule"></div>
+    </section>
+  </main>
+
+  <script src="app.js?v=v8-display-order-1"></script>
+</body>
+</html>
