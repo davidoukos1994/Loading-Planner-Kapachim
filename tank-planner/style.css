@@ -43,3 +43,38 @@ button{background:var(--purple);color:white;border:0;font-weight:800} button.sec
 /* v4.1: το πρόγραμμα γεμίσματος εμφανίζεται πρώτο */
 .schedule-panel-top{margin-top:0;border:2px solid rgba(123,44,191,.35)}
 .schedule-panel-top h2{margin-top:0}
+
+/* v4.2: γρήγορος υπολογισμός δίπλα στο κανονικό πρόγραμμα */
+.top-workspace{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:12px;align-items:start}
+.quick-panel{border:2px solid #bfd4e8;background:#fbfdff}
+.quick-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.quick-heading h2{margin:0;color:#173b5f;font-size:18px}
+.quick-heading p{margin:4px 0 0;color:#66788a;font-size:12px}
+.quick-add{background:#173b5f;white-space:nowrap;padding:7px 10px;min-height:36px;font-size:13px}
+.quick-help{background:#edf6ff;border:1px solid #c9dff3;border-radius:8px;padding:8px;font-size:12px;line-height:1.4;color:#29465f;margin-bottom:9px}
+.quick-rows{display:grid;gap:8px}
+.quick-row{display:grid;grid-template-columns:1fr .86fr .86fr 38px;gap:6px;align-items:end;padding:8px;border:1px solid #d6e2ec;border-radius:10px;background:#fff}
+.quick-row label{font-size:11px}
+.quick-row input,.quick-row select{min-width:0;width:100%;font-size:14px;padding:7px;min-height:38px;background:#fff}
+.quick-row .quick-level{background:#fff7a6}
+.quick-remove{background:#fff;color:#d22;border:1px solid #efb8b8;padding:4px;min-height:38px;font-size:17px}
+.quick-calc{width:100%;margin-top:9px;background:#119447}
+.quick-results{margin-top:9px;display:grid;gap:6px}
+.quick-result-row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;padding:8px;border-radius:9px;background:#eef9f1;border:1px solid #b9e2c4;font-size:13px}
+.quick-result-row .badge{background:#119447}
+.quick-result-row small{display:block;color:#55705d;margin-top:2px}
+.quick-empty{padding:10px;border:1px dashed #b7c6d3;border-radius:8px;color:#66788a;text-align:center;font-size:13px}
+@media(max-width:850px){
+  .top-workspace{grid-template-columns:1fr}
+  .quick-panel{order:0}
+  .schedule-panel-top{order:1}
+  .quick-row{grid-template-columns:1fr 1fr}
+  .quick-remove{grid-column:2;justify-self:end;width:42px}
+  .quick-heading{align-items:center}
+}
+@media(max-width:430px){
+  .quick-heading{display:block}
+  .quick-add{width:100%;margin-top:8px}
+  .quick-row{grid-template-columns:1fr}
+  .quick-remove{grid-column:1;justify-self:end}
+}

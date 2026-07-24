@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=4.1.0" />
+  <link rel="stylesheet" href="style.css?v=4.2.0" />
   <title>Πρόγραμμα Δεξαμενών Υποχλωριώδους Νατρίου</title>
 </head>
 <body>
@@ -20,10 +20,26 @@
   </header>
 
   <main>
-    <section class="panel schedule-panel schedule-panel-top">
-      <h2>Πρόγραμμα γεμίσματος</h2>
-      <div id="schedule" class="schedule"></div>
-    </section>
+    <div class="top-workspace">
+      <section class="panel quick-panel">
+        <div class="quick-heading">
+          <div>
+            <h2>⚡ Γρήγορος υπολογισμός</h2>
+            <p>Προσωρινή προσομοίωση χωρίς αλλαγή στο κύριο πρόγραμμα.</p>
+          </div>
+          <button id="quickAddBtn" class="quick-add" type="button">+ Δεξαμενή</button>
+        </div>
+        <div class="quick-help">Στις σειρές γράψε π.χ. <b>1-3</b> για Z1 και <b>2</b> για Z2. Το Z1 θα υπολογιστεί πρώτη και ξανά τρίτη.</div>
+        <div id="quickRows" class="quick-rows"></div>
+        <button id="quickCalcBtn" class="quick-calc" type="button">Υπολογισμός χρόνου</button>
+        <div id="quickResults" class="quick-results" aria-live="polite"></div>
+      </section>
+
+      <section class="panel schedule-panel schedule-panel-top">
+        <h2>Πρόγραμμα γεμίσματος</h2>
+        <div id="schedule" class="schedule"></div>
+      </section>
+    </div>
 
     <section class="panel top-panel">
       <label>Παραγωγή kg/hr
@@ -55,6 +71,6 @@
 
   </main>
 
-  <script src="app.js?v=4.1.0"></script>
+  <script src="app.js?v=4.2.0"></script>
 </body>
 </html>

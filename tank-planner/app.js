@@ -15,6 +15,97 @@ const OLD_KEYS = ['hypo-v6-total-fixed'];
 let state = load() || {production:'6824', startTime:toLocalInput(new Date()), tanks:structuredClone(defaultTanks)};
 state = normalizeState(state);
 
+
+const QUICK_STORAGE_KEY = 'hypo-v42-quick-planner';
+let quickState = loadQuickState();
+
+function loadQuickState(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(QUICK_STORAGE_KEY) || 'null');
+    if(saved && Array.isArray(saved.rows)) return saved;
+  }catch(e){}
+  return {rows:[
+    {tankId:'Z1', level:'', orders:'1-3'},
+    {tankId:'Z2', level:'', orders:'2'}
+  ]};
+}
+function saveQuickState(){ localStorage.setItem(QUICK_STORAGE_KEY, JSON.stringify(quickState)); }
+function tankById(id){ return state.tanks.find(t=>t.id===id) || state.tanks[0]; }
+function parseQuickOrders(value){
+  return [...new Set(String(value ?? '').split(/[^0-9]+/).map(Number).filter(n=>Number.isFinite(n)&&n>0))].sort((a,b)=>a-b);
+}
+function ensureQuickLevels(){
+  quickState.rows.forEach(row=>{
+    const t=tankById(row.tankId);
+    if(row.level==='' || row.level===null || row.level===undefined) row.level=String(t?.m ?? 0);
+  });
+}
+function renderQuick(){
+  const root=qs('quickRows');
+  if(!root) return;
+  ensureQuickLevels();
+  root.innerHTML=quickState.rows.map((row,i)=>{
+    const t=tankById(row.tankId);
+    return `<div class="quick-row">
+      <label>Δεξαμενή
+        <select data-quick-i="${i}" data-quick-k="tankId">${displayOrder.map(id=>`<option value="${id}" ${id===row.tankId?'selected':''}>${id}</option>`).join('')}</select>
+      </label>
+      <label>Στάθμη (m)
+        <input class="quick-level" data-quick-i="${i}" data-quick-k="level" type="text" inputmode="decimal" value="${row.level}" placeholder="${t?.m ?? 0}">
+      </label>
+      <label>Σειρές
+        <input data-quick-i="${i}" data-quick-k="orders" type="text" inputmode="numeric" value="${row.orders}" placeholder="π.χ. 1-3">
+      </label>
+      <button class="quick-remove" data-quick-remove="${i}" type="button" title="Αφαίρεση">×</button>
+    </div>`;
+  }).join('');
+  root.querySelectorAll('[data-quick-i]').forEach(el=>el.addEventListener('input',e=>{
+    const i=Number(e.target.dataset.quickI), k=e.target.dataset.quickK;
+    quickState.rows[i][k]=e.target.value;
+    if(k==='tankId') quickState.rows[i].level=String(tankById(e.target.value)?.m ?? 0);
+    saveQuickState();
+    if(k==='tankId') renderQuick();
+  }));
+  root.querySelectorAll('[data-quick-remove]').forEach(btn=>btn.addEventListener('click',()=>{
+    quickState.rows.splice(Number(btn.dataset.quickRemove),1);
+    if(!quickState.rows.length) quickState.rows.push({tankId:'Z1',level:String(tankById('Z1')?.m ?? 0),orders:'1'});
+    saveQuickState(); renderQuick(); calculateQuick();
+  }));
+}
+function calculateQuick(){
+  const out=qs('quickResults');
+  if(!out) return;
+  const prod=num(state.production);
+  const start=new Date(state.startTime || toLocalInput(new Date()));
+  const entries=[];
+  quickState.rows.forEach((row,rowIndex)=>{
+    const t=tankById(row.tankId);
+    if(!t) return;
+    parseQuickOrders(row.orders).forEach(order=>entries.push({order,rowIndex,t,row}));
+  });
+  entries.sort((a,b)=>a.order-b.order || a.rowIndex-b.rowIndex);
+  if(!entries.length){out.innerHTML='<div class="quick-empty">Βάλε τουλάχιστον μία σειρά, π.χ. 1-3.</div>';return;}
+  if(prod<=0){out.innerHTML='<div class="quick-empty">Δήλωσε πρώτα παραγωγή kg/hr.</div>';return;}
+  const seen={}; let elapsed=0; const results=[];
+  for(const e of entries){
+    seen[e.t.id]=(seen[e.t.id]||0)+1;
+    const occurrence=seen[e.t.id];
+    const startM=occurrence===1 ? Math.max(0,num(e.row.level)) : 0;
+    const targetM=Math.max(0,num(e.t.maxM));
+    const tons=Math.max(0,(targetM-startM)*num(e.t.tnm));
+    const hours=tons/(prod/1000);
+    elapsed+=hours;
+    const end=new Date(start.getTime()+elapsed*3600000);
+    results.push({order:e.order,id:e.t.id,occurrence,startM,targetM,tons,hours,end});
+  }
+  out.innerHTML=results.map(r=>`<div class="quick-result-row">
+    <span class="badge">${r.order}</span>
+    <div><b>${r.id} — ${r.occurrence}η πλήρωση</b>: ${dateFmt(r.end)}
+      <small>${fmt(r.startM,2)}m → ${fmt(r.targetM,2)}m · ${fmt(r.tons,2)} tn · ${dur(r.hours)}</small>
+    </div>
+  </div>`).join('');
+}
+
 function qs(id){return document.getElementById(id)}
 function num(v){
   if(v === '' || v === null || v === undefined) return 0;
@@ -139,6 +230,7 @@ function tankCalc(t){
 function render(){
   qs('production').value = state.production ?? '';
   qs('startTime').value = state.startTime;
+  renderQuick();
   const root = qs('tanks'); root.innerHTML='';
   state.tanks.forEach((t,i)=>{
     const c=tankCalc(t);
@@ -263,6 +355,7 @@ function updateSchedule(){
         : '';
       return `<div class="schedule-row"><span class="badge">${r.order}</span><span>${r.id} ${r.fillNo ? r.fillNo+'η πλήρωση: ' : ''}${tankerText}${fillText}${r.isRepeat ? ' <small>(ξανά από 0)</small>' : ''} — ${dur(r.h)}${detailText}</span><span>${fmt(r.miss,2)} tn</span><span>${dateFmt(r.end)}</span></div>`;
     }).join('') : '<p>Βάλε 1η σειρά/στόχο και, αν χρειάζεται, 2η σειρά/στόχο. Παράδειγμα D1: 1η σειρά 1 στόχος 2,0m και 2η σειρά 5 στόχος 6,2m.</p>');
+  calculateQuick();
   save();
 }
 
@@ -271,5 +364,11 @@ qs('startTime').addEventListener('input', updateSchedule);
 qs('nowBtn').onclick=()=>{state.startTime=toLocalInput(new Date()); save(); render();};
 qs('saveBtn').onclick=()=>{save(); alert('Αποθηκεύτηκε στη συσκευή.');};
 qs('resetBtn').onclick=()=>{ if(confirm('Να γίνει reset στα αρχικά δεδομένα;')){localStorage.removeItem(STORAGE_KEY); OLD_KEYS.forEach(k=>localStorage.removeItem(k)); state={production:'6824',startTime:toLocalInput(new Date()),tanks:structuredClone(defaultTanks)}; render(); }};
+qs('quickAddBtn').onclick=()=>{
+  const id=displayOrder.find(id=>!quickState.rows.some(r=>r.tankId===id)) || 'Z1';
+  quickState.rows.push({tankId:id,level:String(tankById(id)?.m ?? 0),orders:''});
+  saveQuickState(); renderQuick();
+};
+qs('quickCalcBtn').onclick=()=>{ saveQuickState(); calculateQuick(); };
 
 render();
