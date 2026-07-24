@@ -1,534 +1,385 @@
-const KEY='loadingPlanner.v6', OLD_KEYS=['loadingPlanner.v5','loadingPlanner.v4','loadingPlanner.v3','loadingPlanner.v2','loadingPlanner.v1'];
-const WEEK_PRODUCT_SECTIONS=[
- {key:'hypochlorite',label:'ΥΠΟΧΛΩΡΙΩΔΕΣ ΝΑΤΡΙΟ',rows:15,cls:'product-hypochlorite'},
- {key:'hydrochloric',label:'ΥΔΡΟΧΛΩΡΙΚΟ ΟΞΥ',rows:2,cls:'product-hydrochloric'},
- {key:'brine',label:'ΑΛΜΗ',rows:2,cls:'product-brine'},
- {key:'salt',label:'ΑΛΑΤΙ',rows:3,cls:'product-salt'}
+const KEY='fitplanner.v1';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const todayISO=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+const fmtDate=iso=>new Intl.DateTimeFormat('el-GR',{day:'numeric',month:'long',year:'numeric'}).format(new Date(iso+'T12:00:00'));
+
+const starterPrograms=[
+ {id:'fullbody-dumbbells-beginner',muscle:'full',title:'Ολόκληρο σώμα με βαράκια — Αρχάριος',place:'home',level:'beginner',duration:40,goal:'general',exercises:[['Καθίσματα κρατώντας βαράκι στο στήθος',3,10],['Πιέσεις στήθους με βαράκια στο πάτωμα',3,10],['Κωπηλατική με ένα βαράκι',3,10],['Άρσεις θανάτου με βαράκια και τεντωμένα πόδια',3,10],['Σανίδα',3,30]]},
+ {id:'bodyweight-20',muscle:'full',title:'Ασκήσεις με το βάρος του σώματος — 20 λεπτά',place:'home',level:'beginner',duration:20,goal:'fatloss',exercises:[['Καθίσματα',3,12],['Κάμψεις',3,8],['Προβολές ποδιών',3,10],['Γέφυρες γλουτών',3,15],['Ορειβάτες',4,30]]},
+ {id:'home-outdoor-bodyweight',muscle:'full',title:'Ασκήσεις οικίας — χωρίς βάρη',place:'home',level:'beginner',duration:35,goal:'general',exercises:[['Καθίσματα με το βάρος του σώματος',4,15],['Κάμψεις στο έδαφος ή σε παγκάκι',4,10],['Προβολές προς τα πίσω',3,12],['Έλξεις σε μονόζυγο εξωτερικού χώρου',3,6],['Βυθίσεις τρικεφάλων σε παράλληλες μπάρες ή παγκάκι',3,8],['Ανεβάσματα σε παγκάκι',3,12],['Άρσεις γονάτων κρεμαστός σε μονόζυγο',3,10],['Σανίδα',3,30]]},
+ {id:'upper-dumbbells',muscle:'upper',title:'Άνω σώμα με βαράκια',place:'home',level:'intermediate',duration:45,goal:'muscle',exercises:[['Πιέσεις στήθους με βαράκια',4,10],['Κωπηλατική σκυφτός με βαράκια',4,10],['Πιέσεις ώμων με βαράκια',3,10],['Πλάγιες άρσεις ώμων με βαράκια',3,12],['Κάμψεις δικεφάλων με βαράκια',3,12],['Εκτάσεις τρικεφάλων πάνω από το κεφάλι',3,12]]},
+ {id:'lower-dumbbells',muscle:'legs',title:'Πόδια και γλουτοί με βαράκια',place:'home',level:'intermediate',duration:45,goal:'strength',exercises:[['Καθίσματα κρατώντας βαράκια',4,10],['Προβολές με βαράκια',3,10],['Άρσεις θανάτου με βαράκια',4,10],['Ανεβάσματα σε σκαλοπάτι με βαράκια',3,10],['Γέφυρες γλουτών με βαράκι',3,15],['Άρσεις γάμπας κρατώντας βαράκια',4,15]]},
+ {id:'fullbody-strength',muscle:'full',title:'Δύναμη ολόκληρου σώματος με βαράκια',place:'home',level:'intermediate',duration:50,goal:'strength',exercises:[['Καθίσματα με βαράκια',4,8],['Πιέσεις στήθους με βαράκια',4,8],['Κωπηλατική με βαράκια',4,8],['Πιέσεις ώμων με βαράκια',3,8],['Άρσεις θανάτου με βαράκια',4,8],['Σανίδα με άγγιγμα ώμων',3,20]]},
+ {id:'bodyweight-full',muscle:'full',title:'Ολόκληρο σώμα χωρίς εξοπλισμό',place:'home',level:'beginner',duration:35,goal:'general',exercises:[['Καθίσματα',4,12],['Κάμψεις σε τοίχο ή γόνατα',3,10],['Προβολές προς τα πίσω',3,10],['Βυθίσεις τρικεφάλων σε καρέκλα',3,8],['Γέφυρες γλουτών',3,15],['Σανίδα',3,30]]},
+ {id:'core-bodyweight',muscle:'abs',title:'Κοιλιακοί και κορμός με βάρος σώματος',place:'home',level:'beginner',duration:25,goal:'general',exercises:[['Σανίδα',3,30],['Πλάγια σανίδα',3,20],['Άρσεις αντίθετου χεριού και ποδιού',3,10],['Νεκρό έντομο',3,10],['Ορειβάτες',3,30],['Άρσεις λεκάνης',3,15]]},
+ {id:'conditioning-dumbbells',muscle:'full',title:'Κυκλική προπόνηση με βαράκια',place:'home',level:'intermediate',duration:30,goal:'endurance',exercises:[['Καθίσματα και πίεση ώμων με βαράκια',4,10],['Κωπηλατική με βαράκια',4,10],['Προβολές εναλλάξ',4,10],['Κάμψεις',4,8],['Άρσεις θανάτου με βαράκια',4,10],['Ορειβάτες',4,30]]},
+ {id:'mobility',muscle:'mobility',title:'Κινητικότητα και αποκατάσταση',place:'home',level:'beginner',duration:25,goal:'mobility',exercises:[['Κίνηση γάτας και αγελάδας',2,10],['Περιστροφές ισχίων 90/90',2,8],['Περιστροφές θωρακικής μοίρας',2,8],['Διάταση καμπτήρων ισχίου',2,40],['Στάση του παιδιού',2,45]]},
+ {id:'superset-fullbody-1',muscle:'full',title:'Superset ολόκληρου σώματος με βαράκια',place:'gym',level:'intermediate',duration:35,goal:'general',exercises:[['Καθίσματα με βαράκια + Πιέσεις ώμων',4,10],['Κωπηλατική με βαράκια + Κάμψεις',4,10],['Άρσεις θανάτου με βαράκια + Ορειβάτες',4,10],['Προβολές με βαράκια + Σανίδα',3,10]]},
+ {id:'superset-upper-1',muscle:'upper',title:'Superset άνω σώματος',place:'gym',level:'intermediate',duration:35,goal:'muscle',exercises:[['Πιέσεις στήθους με βαράκια + Κωπηλατική με βαράκια',4,10],['Πιέσεις ώμων + Πλάγιες άρσεις ώμων',3,10],['Κάμψεις δικεφάλων + Εκτάσεις τρικεφάλων',3,12],['Κάμψεις + Σανίδα με άγγιγμα ώμων',3,10]]},
+ {id:'superset-lower-1',muscle:'legs',title:'Superset ποδιών και γλουτών',place:'gym',level:'intermediate',duration:35,goal:'strength',exercises:[['Καθίσματα με βαράκια + Άρσεις θανάτου με βαράκια',4,10],['Προβολές προς τα πίσω + Γέφυρες γλουτών',3,12],['Ανεβάσματα σε σκαλοπάτι + Άρσεις γάμπας',3,12],['Καθίσματα χωρίς βάρος + Σανίδα',3,15]]},
+ {id:'chest-focus',muscle:'chest',title:'Στήθος',place:'gym',level:'beginner',duration:35,goal:'muscle',exercises:[['Πιέσεις στήθους με βαράκια',4,10],['Κάμψεις',3,10],['Ανοίγματα στήθους με βαράκια',3,12],['Κάμψεις σε παγκάκι',3,12]]},
+ {id:'back-focus',muscle:'back',title:'Πλάτη',place:'gym',level:'beginner',duration:40,goal:'muscle',exercises:[['Κωπηλατική με ένα βαράκι',4,10],['Κωπηλατική σκυφτός με βαράκια',3,12],['Έλξεις σε μονόζυγο εξωτερικού χώρου',3,6],['Superman',3,12]]},
+ {id:'shoulders-focus',muscle:'shoulders',title:'Ώμοι',place:'home',level:'beginner',duration:30,goal:'muscle',exercises:[['Πιέσεις ώμων με βαράκια',4,10],['Πλάγιες άρσεις ώμων με βαράκια',3,12],['Μπροστινές άρσεις ώμων με βαράκια',3,12],['Σανίδα με άγγιγμα ώμων',3,20]]},
+ {id:'legs-focus',muscle:'legs',title:'Πόδια',place:'home',level:'beginner',duration:40,goal:'strength',exercises:[['Καθίσματα',4,12],['Προβολές ποδιών',3,10],['Γέφυρες γλουτών',3,15],['Ανεβάσματα σε σκαλοπάτι',3,12],['Άρσεις γάμπας',4,15]]},
+ {id:'abs-focus',muscle:'abs',title:'Κοιλιακοί',place:'home',level:'beginner',duration:25,goal:'general',exercises:[['Σανίδα',3,30],['Πλάγια σανίδα',3,20],['Νεκρό έντομο',3,10],['Ορειβάτες',3,30],['Άρσεις γονάτων κρεμαστός σε μονόζυγο',3,10]]}
 ];
-const DAILY_HEADERS=['#','ΠΕΛΑΤΗΣ','ΑΠΟ ΔΕΞΑΜΕΝΗ','ΠΟΣΟΤΗΤΑ','ΗΜ/ΝΙΑ - ΒΑΡΔΙΑ','ΩΡΑ ΦΟΡΤΩΣΗΣ','ΥΠΕΥΘΥΝΟΣ ΦΟΡΤΩΣΗΣ'];
-const SHIFT_OPTIONS=['','ΠΡΩΙ','ΑΠΟΓΕΥΜΑ','ΒΡΑΔΥ'];
-const SEQUENCE_HEADERS=['#','ΔΕΞΑΜΕΝΗ','ΑΡΧΙΚΗ ΣΤΑΘΜΗ','ΤΕΛΙΚΗ ΣΤΑΘΜΗ','ΕΝΕΡΓΑ','ΣΟΔΑ','ΟΛΟΚΛΗΡΩΘΗΚΕ'];
-const SALT_OPTIONS=['ΕΛΛΗΝΙΚΕΣ ΑΛΥΚΕΣ','ΔΑΚΑΡΙΔΗΣ'];
-const WORK_SHIFT_TIMES={ΠΡΩΙ:['07:00','09:00','11:00','13:00'],ΑΠΟΓΕΥΜΑ:['15:00','17:00','19:00','21:00'],ΒΡΑΔΥ:['23:00','01:00','03:00','05:00']};
-const ANALYSIS_GROUPS=[['R-201','D-201','D-203','D-204','ΧΛΩΡΙΝΗ','ΟΞΥ'],['R-201','F-201','C-201'],['R-201','ΧΛΩΡΙΝΗ','ΟΞΥ','FEED','ΑΝΟΛΥΤΗΣ','ΣΟΔΑ'],['R-201']];
-const ANALYSIS_FIELDS={
- 'R-201':[{key:'naoh',label:'NaOH',unit:'gpl'},{key:'na2co3',label:'Na₂CO₃',unit:'gpl'}],
- 'D-201':[{key:'gpl',label:'ΣΥΓΚΕΝΤΡΩΣΗ',unit:'gpl'},{key:'ph',label:'pH',unit:'pH'}],
- 'D-203':[{key:'ph',label:'pH',unit:'pH'}],
- 'D-204':[{key:'gpl',label:'ΣΥΓΚΕΝΤΡΩΣΗ',unit:'gpl'}],
- 'FEED':[{key:'gpl',label:'ΣΥΓΚΕΝΤΡΩΣΗ',unit:'gpl'}],
- 'ΑΝΟΛΥΤΗΣ':[{key:'gpl',label:'ΣΥΓΚΕΝΤΡΩΣΗ',unit:'gpl'}],
- 'ΧΛΩΡΙΝΗ':[{key:'active',label:'ΕΝΕΡΓΑ',unit:'%'},{key:'naoh',label:'ΚΑΥΣΤΙΚΗ ΣΟΔΑ',unit:''}],
- 'ΟΞΥ':[{key:'density',label:'ΜΠΟΜΕΤΡΟ',unit:'1100–1200'}],
- 'F-201':[{key:'mg',label:'Mg',unit:''},{key:'ca',label:'Ca',unit:''},{key:'turbidity',label:'ΘΟΛΟΤΗΤΑ',unit:''}],
- 'C-201':[{key:'ppb',label:'ΑΠΟΤΕΛΕΣΜΑ',unit:'ppb'}],
- 'ΣΟΔΑ':[{key:'value',label:'ΑΠΟΤΕΛΕΣΜΑ',unit:''}]
-};
-const WORK_TASK_OPTIONS=['D-203 ΣΑΚΟΦΙΛΤΡΟ','ΣΑΚΟΦΙΛΤΡΑ ΑΕΡΙΩΝ','ΣΑΚΙΑ Na2CO3','ΕΚΚΙΝΗΣΗ ΑΝΑΒΑΤΟΡΙΟΥ','ΣΤΑΜΑΤΗΜΑ ΑΝΑΒΑΤΟΡΙΟΥ','ΜΕΤΡΗΣΗ ΠΙΤ — ΜΕΤΡΑ ΑΔΕΙΟ'];
-let state=loadState(), selectedInputs=[], ocrTarget='weekly', ocrPending=[];
 
-// Κοινόχρηστος συγχρονισμός Supabase (μόνο δεδομένα, ποτέ φωτογραφίες).
-const DEFAULT_SUPABASE_URL='https://jxuxrpemexgiqofjprms.supabase.co';
-const DEFAULT_SUPABASE_PUBLISHABLE_KEY='sb_publishable_C1umeeMdCahuDbDhFZFa1g_CpFtFj6i';
-const CONNECTION_SETTINGS_KEY='loadingPlanner.connection.v1';
-const SHARED_ROW_ID='shared-loading-planner';
-function getConnectionSettings(){
- try{
-  const saved=JSON.parse(localStorage.getItem(CONNECTION_SETTINGS_KEY)||'{}');
-  return {url:(saved.url||DEFAULT_SUPABASE_URL).trim(),key:(saved.key||DEFAULT_SUPABASE_PUBLISHABLE_KEY).trim()};
- }catch{return {url:DEFAULT_SUPABASE_URL,key:DEFAULT_SUPABASE_PUBLISHABLE_KEY}}
-}
-function storeConnectionSettings(url,key){localStorage.setItem(CONNECTION_SETTINGS_KEY,JSON.stringify({url:String(url||'').trim(),key:String(key||'').trim()}))}
-function setConnectionResult(text,kind='idle'){const el=document.getElementById('connectionResult');if(!el)return;el.textContent=text;el.dataset.kind=kind}
-function fillConnectionSettings(){const cfg=getConnectionSettings();const u=document.getElementById('settingsSupabaseUrl'),k=document.getElementById('settingsSupabaseKey');if(u)u.value=cfg.url;if(k)k.value=cfg.key}
+const exerciseCatalog=[
+ {name:'Πιέσεις στήθους με βαράκια',muscle:'chest',places:['home','gym']},{name:'Πιέσεις στήθους με βαράκια στο πάτωμα',muscle:'chest',places:['home']},{name:'Κάμψεις',muscle:'chest',places:['home','gym']},{name:'Κάμψεις σε παγκάκι',muscle:'chest',places:['home','gym']},{name:'Ανοίγματα στήθους με βαράκια',muscle:'chest',places:['home','gym']},
+ {name:'Κωπηλατική με ένα βαράκι',muscle:'back',places:['home','gym']},{name:'Κωπηλατική σκυφτός με βαράκια',muscle:'back',places:['home','gym']},{name:'Έλξεις σε μονόζυγο εξωτερικού χώρου',muscle:'back',places:['home','gym']},{name:'Superman',muscle:'back',places:['home']},
+ {name:'Πιέσεις ώμων με βαράκια',muscle:'shoulders',places:['home','gym']},{name:'Πλάγιες άρσεις ώμων με βαράκια',muscle:'shoulders',places:['home','gym']},{name:'Μπροστινές άρσεις ώμων με βαράκια',muscle:'shoulders',places:['home','gym']},{name:'Σανίδα με άγγιγμα ώμων',muscle:'shoulders',places:['home']},
+ {name:'Καθίσματα',muscle:'legs',places:['home','gym']},{name:'Καθίσματα κρατώντας βαράκι στο στήθος',muscle:'legs',places:['home','gym']},{name:'Προβολές ποδιών',muscle:'legs',places:['home','gym']},{name:'Γέφυρες γλουτών',muscle:'legs',places:['home','gym']},{name:'Ανεβάσματα σε σκαλοπάτι',muscle:'legs',places:['home','gym']},{name:'Άρσεις γάμπας',muscle:'legs',places:['home','gym']},{name:'Άρσεις θανάτου με βαράκια',muscle:'legs',places:['home','gym']},
+ {name:'Σανίδα',muscle:'abs',places:['home','gym']},{name:'Πλάγια σανίδα',muscle:'abs',places:['home','gym']},{name:'Νεκρό έντομο',muscle:'abs',places:['home']},{name:'Ορειβάτες',muscle:'abs',places:['home','gym']},{name:'Άρσεις γονάτων κρεμαστός σε μονόζυγο',muscle:'abs',places:['home','gym']},
+ {name:'Κάμψεις δικεφάλων με βαράκια',muscle:'arms',places:['home','gym']},{name:'Εκτάσεις τρικεφάλων πάνω από το κεφάλι',muscle:'arms',places:['home','gym']},{name:'Βυθίσεις τρικεφάλων σε καρέκλα',muscle:'arms',places:['home']}
+];
+const muscleNames={all:'Όλα',full:'Όλο το σώμα',chest:'Στήθος',back:'Πλάτη',shoulders:'Ώμοι',legs:'Πόδια',abs:'Κοιλιακοί',arms:'Χέρια',upper:'Άνω σώμα',mobility:'Κινητικότητα'};
 
-const DEVICE_ID_KEY='loadingPlanner.deviceId';
-const DEVICE_ID=localStorage.getItem(DEVICE_ID_KEY)||((crypto.randomUUID&&crypto.randomUUID())||('device-'+Date.now()+'-'+Math.random().toString(16).slice(2)));
-localStorage.setItem(DEVICE_ID_KEY,DEVICE_ID);
-let supabaseClient=null, syncReady=false, applyingRemote=false, remoteTimer=null, realtimeChannel=null;
+let state=load();
+let calDate=new Date();
+let selectedDate=todayISO();
+let activeFilter='all';
 
+function defaultState(){
+ const id=uid();
+ return {activePersonId:id,theme:'light',people:[{id,name:'Αλέξανδρος',birthdate:'',sex:'',height:'',weight:'',waist:'',level:'beginner',place:'gym',days:3,duration:45,goal:'general',limitations:'',measurements:[],calendar:{},customPrograms:[]}]} ;
+}
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||defaultState()}catch{return defaultState()}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));renderAll()}
+function person(){return state.people.find(p=>p.id===state.activePersonId)||state.people[0]}
+function ageOf(b){if(!b)return null;const d=new Date(b),n=new Date();let a=n.getFullYear()-d.getFullYear();if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate()))a--;return a}
+function latestMeasurement(p){return [...(p.measurements||[])].filter(m=>m.date&&m.weight).sort((a,b)=>b.date.localeCompare(a.date))[0]||null}
+function currentWeightOf(p){const m=latestMeasurement(p);return m?String(m.weight):String(p.weight||'')}
+function syncCurrentMeasurement(p){const m=latestMeasurement(p);if(m){p.weight=String(m.weight);if(m.waist)p.waist=String(m.waist)}}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1800)}
+function go(view){$$('.view').forEach(v=>v.classList.toggle('active',v.dataset.view===view));$$('[data-go]').forEach(b=>b.classList.toggle('active',b.dataset.go===view));if(view==='profile')fillProfile();if(view==='calendar')renderCalendar();window.scrollTo({top:0,behavior:'smooth'})}
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
 
-function defaultState(){return {weekStart:'',weekly:{},weeklyDone:{},dailyDate:'',daily:{},dailySchemaVersion:2,sequenceDate:'',sequence:{},salesOrder:Array.from({length:8},()=>({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false})),workProgramDate:'',workPrograms:{},lists:{clients:['UNILEVER','ΚΩΝΣΤΑΝΤΙΝΙΔΗΣ','ΙΝΤΕΡΚΑΠΑ','LUBRICO','ΕΥΡΩΧΑΡΤΙΚΗ','ECOLAB','COLGATE','ΟΞΕΑ','FERI TRI','ALINDA'],tanks:['Δ1','Δ2','Δ3','Ζ1','Ζ2','Ζ3','Α2','Α3','Α4'],carriers:[],other:[]}}}
-function migrateDailyState(s){
- if(s.dailySchemaVersion===2)return s;
- const migrated={};
- for(const [date,rows] of Object.entries(s.daily||{})){
-  migrated[date]=(Array.isArray(rows)?rows:[]).map(r=>{
-   const a=Array.isArray(r)?r:[];
-   // Παλιά σειρά: πελάτης, δεξαμενή, μεταφορέας, ποσότητα, ημερομηνία/βάρδια, ώρα, υπεύθυνος.
-   const dateShift=String(a[4]||'').trim();
-   let dateValue='',shift='';
-   const isoMatch=dateShift.match(/(\d{4}-\d{2}-\d{2})/);
-   if(isoMatch)dateValue=isoMatch[1];
-   const upperValue=upper(dateShift);
-   if(upperValue.includes('ΠΡΩ'))shift='ΠΡΩΙ';else if(upperValue.includes('ΑΠΟΓ'))shift='ΑΠΟΓΕΥΜΑ';else if(upperValue.includes('ΒΡΑ')||upperValue.includes('ΝΥΧ'))shift='ΒΡΑΔΥ';
-   return [upper(a[0]||''),upper(a[1]||''),upper(a[3]||''),dateValue,shift,upper(a[5]||''),upper(a[6]||'')];
-  });
- }
- s.daily=migrated;s.dailySchemaVersion=2;return s
+function renderAll(){
+ document.body.classList.toggle('dark',state.theme==='dark');
+ const p=person();syncCurrentMeasurement(p);
+ $('#activeName').textContent=p.name;
+ $('#activeAvatar').textContent=(p.name||'?')[0].toUpperCase();
+ const bits=[]; const age=ageOf(p.birthdate); if(age)bits.push(age+' ετών'); if(p.height)bits.push(p.height+' cm'); const cw=currentWeightOf(p); if(cw)bits.push(cw+' kg');
+ $('#activeSummary').textContent=bits.join(' • ')||'Δεν έχουν συμπληρωθεί στοιχεία';
+ $('#currentWeight').textContent=cw?cw+' kg':'—';
+ const month=todayISO().slice(0,7); const entries=Object.entries(p.calendar||{}).filter(([d])=>d.startsWith(month)).flatMap(([,a])=>a||[]);
+ $('#monthWorkouts').textContent=entries.filter(e=>e.done).length;
+ $('#streak').textContent=calcStreak(p)+' εβδομ.';
+ $('#nextGoal').textContent=goalName(p.goal);
+ renderPeople();renderPrograms();renderMeasurements();renderHomeToday();
 }
-function loadState(){try{let raw=localStorage.getItem(KEY);if(!raw)for(const k of OLD_KEYS){raw=localStorage.getItem(k);if(raw)break}const p=raw?JSON.parse(raw):{},b=defaultState();return migrateDailyState({...b,...p,dailySchemaVersion:p.dailySchemaVersion||1,lists:{...b.lists,...(p.lists||{})},weeklyDone:p.weeklyDone||{},sequence:p.sequence||{},salesOrder:Array.isArray(p.salesOrder)?p.salesOrder:b.salesOrder,workPrograms:p.workPrograms||{},workProgramDate:p.workProgramDate||''})}catch{return defaultState()}}
-function setStatus(text,kind=''){const el=document.getElementById('saveStatus');if(!el)return;el.textContent=text;el.dataset.kind=kind}
-function save(){
- localStorage.setItem(KEY,JSON.stringify(state));
- setStatus((syncReady?'Αποθηκεύτηκε • συγχρονισμός…':'Αποθηκεύτηκε τοπικά')+' '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),syncReady?'syncing':'local');
- scheduleRemoteSave();
-}
-function scheduleRemoteSave(){
- if(!syncReady||applyingRemote||!supabaseClient)return;
- clearTimeout(remoteTimer);remoteTimer=setTimeout(pushRemoteState,650);
-}
-async function pushRemoteState(){
- if(!syncReady||applyingRemote||!supabaseClient)return;
- try{
-  const payload={id:SHARED_ROW_ID,data:state,updated_by:DEVICE_ID,updated_at:new Date().toISOString()};
-  const {error}=await supabaseClient.from('loading_planner_state').upsert(payload,{onConflict:'id'});
-  if(error)throw error;
-  setStatus('Κοινόχρηστο • συγχρονίστηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
- }catch(err){console.error('Supabase save',err);setStatus('Αποθηκεύτηκε τοπικά • σφάλμα συγχρονισμού','error')}
-}
-function applyRemoteState(remote){
- if(!remote||typeof remote!=='object')return;
- applyingRemote=true;
- const base=defaultState();
- state=migrateDailyState({...base,...remote,dailySchemaVersion:remote.dailySchemaVersion||1,lists:{...base.lists,...(remote.lists||{})},weeklyDone:remote.weeklyDone||{},sequence:remote.sequence||{},workPrograms:remote.workPrograms||{},workProgramDate:remote.workProgramDate||''});
- localStorage.setItem(KEY,JSON.stringify(state));
- state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());state.workProgramDate=state.workProgramDate||iso(new Date());
- initLists();renderWeekly();renderDaily();renderSalesOrder();renderWorkProgram();bindVisualViewportLayout();
- applyingRemote=false;
- setStatus('Κοινόχρηστο • ενημερώθηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
-}
-async function initSharedSync(showResult=false){
- syncReady=false;
- if(realtimeChannel&&supabaseClient){try{await supabaseClient.removeChannel(realtimeChannel)}catch{}}
- realtimeChannel=null;supabaseClient=null;
- if(!window.supabase?.createClient){setStatus('Αποθηκεύτηκε τοπικά • δεν φορτώθηκε ο συγχρονισμός','error');setConnectionResult('🔴 Δεν φορτώθηκε η βιβλιοθήκη Supabase. Έλεγξε τη σύνδεση internet.','error');return false}
- const cfg=getConnectionSettings();
- if(!cfg.url||!cfg.key){setStatus('Αποθηκεύτηκε τοπικά • λείπουν ρυθμίσεις','error');setConnectionResult('🔴 Συμπλήρωσε Project URL και publishable key.','error');return false}
- try{
-  supabaseClient=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:false,autoRefreshToken:false}});
-  setStatus('Σύνδεση κοινής χρήσης…','syncing');
-  const {data,error}=await supabaseClient.from('loading_planner_state').select('data,updated_by,updated_at').eq('id',SHARED_ROW_ID).maybeSingle();
-  if(error)throw error;
-  syncReady=true;
-  if(data?.data)applyRemoteState(data.data);else await pushRemoteState();
-  realtimeChannel=supabaseClient.channel('loading-planner-shared')
-   .on('postgres_changes',{event:'*',schema:'public',table:'loading_planner_state',filter:`id=eq.${SHARED_ROW_ID}`},payload=>{
-    const row=payload.new;if(!row||row.updated_by===DEVICE_ID)return;applyRemoteState(row.data);
-   }).subscribe(status=>{if(status==='SUBSCRIBED'){setStatus('Κοινόχρηστο • online','online');setConnectionResult('🟢 Συνδεδεμένο με Supabase — ο συγχρονισμός είναι ενεργός.','online')}});
-  setConnectionResult('🟢 Η σύνδεση και η ανάγνωση της κοινόχρηστης βάσης λειτουργούν.','online');
-  return true;
- }catch(err){console.error('Supabase init',err);setStatus('Αποθηκεύτηκε τοπικά • έλεγξε τις ρυθμίσεις','error');setConnectionResult('🔴 Αποτυχία σύνδεσης: '+(err?.message||'Άγνωστο σφάλμα'),'error');return false}
-}
+function calcStreak(p){let s=0;for(let w=0;w<12;w++){const end=new Date();end.setDate(end.getDate()-w*7);const start=new Date(end);start.setDate(end.getDate()-6);const has=Object.entries(p.calendar||{}).some(([d,a])=>{const x=new Date(d+'T12:00:00');return x>=start&&x<=end&&(a||[]).some(e=>e.done)});if(has)s++;else if(w>0)break;}return s}
+function goalName(g){return ({general:'Ευεξία',fatloss:'Απώλεια λίπους',muscle:'Μυϊκή ανάπτυξη',strength:'Δύναμη',endurance:'Αντοχή',mobility:'Κινητικότητα'})[g]||'Ορισμός'}
+function renderHomeToday(){const a=(person().calendar||{})[todayISO()]||[];if(a.length){$('#todayTitle').textContent=a[0].title;$('#todaySubtitle').textContent=a[0].done?'Η προπόνηση ολοκληρώθηκε.':'Έχει προγραμματιστεί για σήμερα.';$('#startTodayBtn').textContent=a[0].done?'Προβολή':'Ξεκίνα προπόνηση'}else{$('#todayTitle').textContent='Η σημερινή προπόνηση';$('#todaySubtitle').textContent='Δημιούργησε πρόγραμμα ή πάρε αυτόματη πρόταση.';$('#startTodayBtn').textContent='Ξεκίνα προπόνηση'}}
 
-function debounce(fn,ms=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}} const autosave=debounce(save);
-function upper(v){return (v||'').toLocaleUpperCase('el-GR')} function iso(d){return d.toISOString().slice(0,10)}
-function mondayOfToday(){const d=new Date(),day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);return iso(d)}
-function fmt(d){return new Intl.DateTimeFormat('el-GR',{day:'2-digit',month:'2-digit',year:'2-digit'}).format(d)}
-function weekKey(){return state.weekStart||mondayOfToday()} function dayKey(){return state.dailyDate||iso(new Date())} function seqKey(){return state.sequenceDate||iso(new Date())}
-function blankWeekly(){return Object.fromEntries(WEEK_PRODUCT_SECTIONS.map(s=>[s.key,Array.from({length:s.rows},()=>Array(7).fill(''))]))}
-function blankWeeklyDone(){return Object.fromEntries(WEEK_PRODUCT_SECTIONS.map(s=>[s.key,Array.from({length:s.rows},()=>Array(7).fill(false))]))}
-function blankDaily(){return Array.from({length:16},()=>Array(DAILY_HEADERS.length-1).fill(''))}
-function blankSequence(){return Array.from({length:12},()=>Array(SEQUENCE_HEADERS.length-1).fill(''))}
-function normalizeWeekly(v){const out=blankWeekly();if(v&&!Array.isArray(v))WEEK_PRODUCT_SECTIONS.forEach(s=>{for(let r=0;r<s.rows;r++)for(let c=0;c<7;c++)out[s.key][r][c]=upper(v[s.key]?.[r]?.[c]||'')});return out}
-function normalizeDone(v){const out=blankWeeklyDone();WEEK_PRODUCT_SECTIONS.forEach(s=>{for(let r=0;r<s.rows;r++)for(let c=0;c<7;c++)out[s.key][r][c]=!!v?.[s.key]?.[r]?.[c]});return out}
-function suggestions(key){if(key==='salt')return SALT_OPTIONS;return [...new Set((state.lists[key]||[]).map(upper).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))}
-function editDistance(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},()=>Array(n+1).fill(0));for(let i=0;i<=m;i++)d[i][0]=i;for(let j=0;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
-function matches(q,key,all=false){q=upper(q).trim();const xs=suggestions(key);if(!q)return all?xs:xs.slice(0,8);return xs.map(x=>({x,score:x.startsWith(q)?0:x.includes(q)?1:editDistance(x,q)<=2?2:9})).filter(o=>o.score<9).sort((a,b)=>a.score-b.score||a.x.localeCompare(b.x,'el')).slice(0,8).map(o=>o.x)}
-function selectCell(el){document.querySelectorAll('.selected-cell').forEach(x=>x.classList.remove('selected-cell'));el.closest('td')?.classList.add('selected-cell');selectedInputs=[el]}
-function addClientToList(value){
- const v=upper(value).trim();
- if(!v)return;
- if(!state.lists.clients.includes(v)){
-  state.lists.clients.push(v);
-  state.lists.clients=[...new Set(state.lists.clients)].sort((a,b)=>a.localeCompare(b,'el'));
-  const box=document.getElementById('clientsList');if(box)box.value=state.lists.clients.join('\n');
-  save();
- }
+function renderPeople(){const g=$('#peopleGrid');g.innerHTML='';state.people.forEach(p=>{const el=document.createElement('article');el.className='person-card card';el.innerHTML=`<div class="person-head"><div class="profile-avatar">${(p.name||'?')[0]}</div><div><h3>${esc(p.name)}</h3><div class="muted small">${[ageOf(p.birthdate)?ageOf(p.birthdate)+' ετών':'',p.weight?p.weight+' kg':''].filter(Boolean).join(' • ')||'Χωρίς στοιχεία'}</div></div></div><div class="actions"><button class="primary select-person">${p.id===state.activePersonId?'Ενεργό':'Επιλογή'}</button><button class="secondary edit-person">Επεξεργασία</button>${state.people.length>1?'<button class="danger delete-person">×</button>':''}</div>`;
+ el.querySelector('.select-person').onclick=()=>{state.activePersonId=p.id;save();toast('Επιλέχθηκε το προφίλ')};
+ el.querySelector('.edit-person').onclick=()=>{state.activePersonId=p.id;save();go('profile')};
+ el.querySelector('.delete-person')?.addEventListener('click',()=>{if(confirm('Να διαγραφεί το προφίλ και όλο το ιστορικό του;')){state.people=state.people.filter(x=>x.id!==p.id);if(state.activePersonId===p.id)state.activePersonId=state.people[0].id;save()}});
+ g.appendChild(el)});
 }
-function closeAllSuggestionMenus(except=null){
- document.querySelectorAll('.inline-suggestions.open').forEach(m=>{if(m!==except){m.classList.remove('open');m.innerHTML=''}});
- document.querySelectorAll('.inline-preview').forEach(p=>{if(!except||p.parentElement?.querySelector('.inline-suggestions')!==except)p.textContent=''});
+$('#addPersonBtn').onclick=()=>openPersonModal();
+function openPersonModal(){openModal(`<h2>Νέο άτομο</h2><label>Όνομα<input id="newPersonName" required autofocus></label><div class="modal-actions"><button value="cancel" class="secondary">Ακύρωση</button><button value="default" class="primary" id="createPerson">Δημιουργία</button></div>`);$('#createPerson').onclick=e=>{e.preventDefault();const name=$('#newPersonName').value.trim();if(!name)return;const p={...defaultState().people[0],id:uid(),name,calendar:{},measurements:[],customPrograms:[]};state.people.push(p);state.activePersonId=p.id;closeModal();save();go('profile')}}
+
+function initBirthdateSelectors(){
+ const day=$('#birthDay'),month=$('#birthMonth'),year=$('#birthYear');
+ if(day.options.length)return;
+ day.innerHTML='<option value="">Ημέρα</option>'+Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${i+1}</option>`).join('');
+ month.innerHTML='<option value="">Μήνας</option>'+['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'].map((x,i)=>`<option value="${String(i+1).padStart(2,'0')}">${x}</option>`).join('');
+ const y=new Date().getFullYear();year.innerHTML='<option value="">Έτος</option>'+Array.from({length:100},(_,i)=>`<option value="${y-i}">${y-i}</option>`).join('');
 }
-function makeInput(value,onChange,classes='',listKey=null,withPicker=false,options={}){
- const wrap=document.createElement('div');wrap.className='autocomplete-wrap'+(withPicker?'':' no-picker');
- const isClient=listKey==='clients';
- const input=document.createElement(isClient?'textarea':'input');
- if(!isClient)input.type='text';else{input.rows=2;input.wrap='soft';input.setAttribute('aria-label','ΟΝΟΜΑ ΠΕΛΑΤΗ')}
- input.className='cell-input '+classes+(isClient?' client-name-input':'');input.dataset.listKey=listKey||'';input.value=upper(value);input.autocomplete='off';input.autocapitalize='characters';input.spellcheck=false;
- const preview=document.createElement('div');preview.className='inline-preview';const menu=document.createElement('div');menu.className='inline-suggestions';
- let activeIndex=-1,currentHits=[];
- function close(){menu.classList.remove('open');menu.innerHTML='';preview.textContent='';activeIndex=-1;currentHits=[]}
- function choose(hit){input.value=upper(hit);onChange(input.value);if(options.addToClients&&listKey==='clients')addClientToList(input.value);save();close();input.focus();try{input.setSelectionRange(input.value.length,input.value.length)}catch{}}
- function renderHits(hits){closeAllSuggestionMenus(menu);currentHits=hits;activeIndex=-1;menu.innerHTML='';for(const hit of hits){const b=document.createElement('button');b.type='button';b.textContent=hit;b.tabIndex=-1;b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();choose(hit)});menu.appendChild(b)}menu.classList.toggle('open',hits.length>0)}
- function updateActive(){[...menu.children].forEach((b,i)=>b.classList.toggle('active',i===activeIndex));if(activeIndex>=0)menu.children[activeIndex]?.scrollIntoView({block:'nearest'})}
- function openAll(){if(!listKey)return;renderHits(matches('',listKey,true))}
- function openFiltered(){if(!listKey)return;const q=input.value.trim();if(!q){close();return}const hits=matches(q,listKey,false);renderHits(hits);if(hits.length&&upper(hits[0]).startsWith(upper(q))&&upper(hits[0])!==upper(q))preview.textContent=hits[0]}
- input.addEventListener('input',()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();openFiltered()});
- input.addEventListener('paste',()=>setTimeout(()=>{const pos=input.selectionStart,v=upper(input.value);input.value=v;try{input.setSelectionRange(pos,pos)}catch{}onChange(v);autosave();openFiltered()},0));
- input.addEventListener('focus',()=>{closeAllSuggestionMenus(menu);selectCell(input);close()});
- input.addEventListener('click',()=>{selectCell(input)});
- input.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){close();return}
-  if(menu.classList.contains('open')&&(e.key==='ArrowDown'||e.key==='ArrowUp')){e.preventDefault();activeIndex=e.key==='ArrowDown'?Math.min(activeIndex+1,currentHits.length-1):Math.max(activeIndex-1,0);updateActive();return}
-  if(e.key==='Enter'&&menu.classList.contains('open')&&currentHits.length){e.preventDefault();choose(currentHits[activeIndex>=0?activeIndex:0]);return}
-  if(e.key==='Enter'&&isClient)e.preventDefault();
- });
- input.addEventListener('blur',()=>{setTimeout(close,220);if(options.addToClients&&listKey==='clients')addClientToList(input.value)});
- wrap.append(input,preview);
- if(withPicker){const p=document.createElement('button');p.type='button';p.className='picker-button';p.textContent='▾';p.setAttribute('aria-label','Άνοιγμα λίστας');p.addEventListener('pointerdown',e=>e.preventDefault());p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();closeAllSuggestionMenus(menu);selectCell(input);input.focus();openAll()});wrap.appendChild(p)}
- wrap.appendChild(menu);return {wrap,input}
+function fillProfile(){const p=person(),f=$('#profileForm');initBirthdateSelectors();Object.keys(p).forEach(k=>{if(f.elements[k])f.elements[k].value=p[k]??''});const [y,m,d]=(p.birthdate||'--').split('-');$('#birthDay').value=d||'';$('#birthMonth').value=m||'';$('#birthYear').value=y||''}
+$('#saveProfileBtn').onclick=()=>{const p=person(),d=$('#birthDay').value,m=$('#birthMonth').value,y=$('#birthYear').value;$('#birthdateHidden').value=(d&&m&&y)?`${y}-${m}-${d}`:'';const f=new FormData($('#profileForm'));for(const [k,v] of f.entries())p[k]=v;p.days=Number(p.days||3);p.duration=Number(p.duration||45);save();toast('Το προφίλ αποθηκεύτηκε')};
+
+function bmiData(p){if(!p.height||!p.weight)return null;const h=Number(p.height)/100,b=Number(p.weight)/(h*h);let label=b<18.5?'Χαμηλότερο από το συνήθως ενδεικτικό εύρος':b<25?'Μέσα στο συνήθως ενδεικτικό εύρος':b<30?'Πάνω από το συνήθως ενδεικτικό εύρος':'Σημαντικά πάνω από το ενδεικτικό εύρος';return {b,low:18.5*h*h,high:24.9*h*h,label}}
+function renderWeightChart(p){
+ const host=$('#weightChart');if(!host)return;const list=[...(p.measurements||[])].filter(m=>m.date&&m.weight).sort((a,b)=>a.date.localeCompare(b.date));
+ if(!list.length){host.innerHTML='<p class="muted">Δεν υπάρχουν αρκετές καταχωρίσεις βάρους.</p>';return}
+ const W=760,H=230,pad={l:52,r:20,t:18,b:45},vals=list.map(x=>Number(x.weight)),min=Math.min(...vals),max=Math.max(...vals),spread=Math.max(1,max-min),lo=min-spread*.25,hi=max+spread*.25;
+ const x=i=>pad.l+(list.length===1?(W-pad.l-pad.r)/2:i*(W-pad.l-pad.r)/(list.length-1));const y=v=>pad.t+(hi-v)*(H-pad.t-pad.b)/(hi-lo);
+ let grid='';for(let i=0;i<5;i++){const yy=pad.t+i*(H-pad.t-pad.b)/4,val=hi-i*(hi-lo)/4;grid+=`<line class="chart-grid" x1="${pad.l}" y1="${yy}" x2="${W-pad.r}" y2="${yy}"/><text class="chart-label" x="4" y="${yy+4}">${val.toFixed(1)} kg</text>`}
+ const pts=list.map((m,i)=>`${x(i)},${y(Number(m.weight))}`).join(' ');const dots=list.map((m,i)=>`<circle class="chart-point" cx="${x(i)}" cy="${y(Number(m.weight))}" r="6"><title>${fmtDate(m.date)}: ${m.weight} kg</title></circle><text class="chart-label" text-anchor="middle" x="${x(i)}" y="${H-18}">${m.date.split('-').reverse().slice(0,2).join('/')}</text>`).join('');
+ host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Εξέλιξη βάρους">${grid}<polyline class="chart-line" points="${pts}"/>${dots}</svg>`;
 }
-function weeklyTotal(){const w=state.weekly[weekKey()]||blankWeekly();return WEEK_PRODUCT_SECTIONS.reduce((t,s)=>t+w[s.key].flat().filter(v=>String(v||'').trim()).length,0)}
-function weeklyDayTotal(dayIndex){const w=state.weekly[weekKey()]||blankWeekly();return WEEK_PRODUCT_SECTIONS.reduce((total,section)=>total+(w[section.key]||[]).reduce((n,row)=>n+(String(row?.[dayIndex]||'').trim()?1:0),0),0)}
-function updateWeekTotal(){
- const total=document.getElementById('weekTotal');if(total)total.textContent='ΣΥΝΟΛΟ ΒΥΤΙΩΝ: '+weeklyTotal();
- document.querySelectorAll('#weeklyDays .day-total').forEach(el=>{const day=Number(el.dataset.day);el.textContent='ΣΥΝΟΛΟ: '+weeklyDayTotal(day)});
-}
-function dateForWeekDay(dayIndex){const d=new Date((state.weekStart||mondayOfToday())+'T12:00:00');d.setDate(d.getDate()+dayIndex);return iso(d)}
-function weeklyClientsForDay(dayIndex){const w=state.weekly[weekKey()]||blankWeekly();const out=[];for(const section of ['hypochlorite','hydrochloric','brine'])for(const row of (w[section]||[])){const name=upper(row?.[dayIndex]||'').trim();if(name)out.push(name)}return out}
-function syncWeeklyDayToDaily(dayIndex){const date=dateForWeekDay(dayIndex);if(date!==iso(new Date()))return;const clients=weeklyClientsForDay(dayIndex);if(!state.daily[date])state.daily[date]=blankDaily();while(state.daily[date].length<Math.max(16,clients.length))state.daily[date].push(Array(7).fill(''));for(let i=0;i<state.daily[date].length;i++)state.daily[date][i][0]=clients[i]||'';if(state.dailyDate===date)renderDaily()}
-function renderWeekly(){
- const start=new Date((state.weekStart||mondayOfToday())+'T12:00:00');state.weekStart=iso(start);document.getElementById('weekStart').value=state.weekStart;const k=weekKey();state.weekly[k]=normalizeWeekly(state.weekly[k]);state.weeklyDone[k]=normalizeDone(state.weeklyDone[k]);
- const days=document.getElementById('weeklyDays');days.innerHTML='<th class="row-label">ΠΡΟΪΟΝ / ΘΕΣΗ</th>';const names=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];const end=new Date(start);end.setDate(end.getDate()+6);document.getElementById('weekRange').textContent=fmt(start)+' – '+fmt(end);
- const todayIso=iso(new Date()),todayIndex=Math.floor((new Date(todayIso+'T12:00:00')-start)/86400000),isCurrentWeek=todayIndex>=0&&todayIndex<7;
- names.forEach((n,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);const th=document.createElement('th');th.dataset.day=i;if(isCurrentWeek&&i<todayIndex)th.classList.add('past-day');if(isCurrentWeek&&i===todayIndex)th.classList.add('today-day');th.innerHTML=`<div class="day-heading"><span>${fmt(d)}</span><strong>${n}</strong><span class="day-total" data-day="${i}">ΣΥΝΟΛΟ: ${weeklyDayTotal(i)}</span></div>`;days.appendChild(th)});
- const body=document.getElementById('weeklyBody');body.innerHTML='';WEEK_PRODUCT_SECTIONS.forEach(s=>{const h=document.createElement('tr');h.className='weekly-product-header '+s.cls;const th=document.createElement('th');th.className='row-label';th.textContent=s.label;h.appendChild(th);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;if(isCurrentWeek&&c<todayIndex)td.classList.add('past-day');if(isCurrentWeek&&c===todayIndex)td.classList.add('today-day');td.textContent=s.label;h.appendChild(td)}body.appendChild(h);
- for(let r=0;r<s.rows;r++){const tr=document.createElement('tr');tr.className='weekly-entry-row '+s.cls;const num=document.createElement('th');num.className='row-label entry-number';num.textContent=r+1;tr.appendChild(num);for(let c=0;c<7;c++){const td=document.createElement('td');td.dataset.day=c;if(isCurrentWeek&&c<todayIndex)td.classList.add('past-day');if(isCurrentWeek&&c===todayIndex)td.classList.add('today-day');const x=makeInput(state.weekly[k][s.key][r][c],v=>{state.weekly[k][s.key][r][c]=v;updateWeekTotal();syncWeeklyDayToDaily(c)},'ocr-client-input',s.key==='salt'?'salt':'clients',true,{addToClients:s.key!=='salt'});const outer=document.createElement('div');outer.className='entry-with-check';const check=document.createElement('label');check.className='done-check';const cb=document.createElement('input');cb.type='checkbox';cb.checked=state.weeklyDone[k][s.key][r][c];const mark=document.createElement('span');mark.textContent='✓';cb.onchange=()=>{state.weeklyDone[k][s.key][r][c]=cb.checked;outer.classList.toggle('completed',cb.checked);save()};check.append(cb,mark);outer.append(x.wrap,check);outer.classList.toggle('completed',cb.checked);td.appendChild(outer);tr.appendChild(td)}body.appendChild(tr)}});updateWeekTotal();const table=document.getElementById('weeklyTable');table.classList.toggle('current-week',isCurrentWeek);requestAnimationFrame(()=>{if(isCurrentWeek&&window.matchMedia('(max-width:700px)').matches){const cell=table.querySelector('thead [data-day="'+todayIndex+'"]');cell?.scrollIntoView({inline:'start',block:'nearest',behavior:'auto'})}})
-}
-function normalizeRows(rows,count){const out=Array.isArray(rows)?rows:[];return out.map(r=>Array.from({length:count},(_,i)=>upper(r?.[i]||'')))}
-function normalizeDailyRows(rows){return (Array.isArray(rows)?rows:[]).map(r=>{const a=Array.isArray(r)?r:[];return [upper(a[0]||''),upper(a[1]||''),upper(a[2]||''),String(a[3]||''),SHIFT_OPTIONS.includes(upper(a[4]||''))?upper(a[4]||''):'',upper(a[5]||''),upper(a[6]||'')]})}
-function renderDaily(){
- state.dailyDate=state.dailyDate||iso(new Date());document.getElementById('dailyDate').value=state.dailyDate;const k=dayKey();if(!state.daily[k])state.daily[k]=blankDaily();state.daily[k]=normalizeDailyRows(state.daily[k]);
- const head=document.getElementById('dailyHead');head.innerHTML='';DAILY_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});
- const body=document.getElementById('dailyBody');body.innerHTML='';
- state.daily[k].forEach((row,ri)=>{
-  const tr=document.createElement('tr');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);
-  const addTextCell=(idx,listKey=null,cls='')=>{const td=document.createElement('td');const x=makeInput(row[idx],val=>state.daily[k][ri][idx]=val,cls,listKey,!!listKey);td.appendChild(x.wrap);tr.appendChild(td)};
-  addTextCell(0,'clients','ocr-client-input');
-  addTextCell(1,'tanks');
-  addTextCell(2,null,/24|25/.test(row[2])?'yellow':'');
-  const dateShiftTd=document.createElement('td');dateShiftTd.className='date-shift-td';const group=document.createElement('div');group.className='date-shift-controls';
-  const dateInput=document.createElement('input');dateInput.type='date';dateInput.className='daily-date-input';dateInput.value=row[3]||'';dateInput.setAttribute('aria-label','Ημερομηνία');dateInput.onchange=()=>{state.daily[k][ri][3]=dateInput.value;save()};
-  const shiftSelect=document.createElement('select');shiftSelect.className='daily-shift-select';shiftSelect.setAttribute('aria-label','Βάρδια');SHIFT_OPTIONS.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v||'ΒΑΡΔΙΑ';shiftSelect.appendChild(o)});shiftSelect.value=row[4]||'';shiftSelect.onchange=()=>{state.daily[k][ri][4]=shiftSelect.value;save()};
-  group.append(dateInput,shiftSelect);dateShiftTd.appendChild(group);tr.appendChild(dateShiftTd);
-  const timeTd=document.createElement('td');const timeInput=document.createElement('input');timeInput.type='time';timeInput.className='daily-time-input';timeInput.value=/^\d{2}:\d{2}$/.test(row[5]||'')?row[5]:'';timeInput.onchange=()=>{state.daily[k][ri][5]=timeInput.value;save()};timeTd.appendChild(timeInput);tr.appendChild(timeTd);
-  addTextCell(6,'other');
-  body.appendChild(tr)
+function renderMeasurements(){const p=person();syncCurrentMeasurement(p);const b=bmiData(p);$('#bmiValue').textContent=b?b.b.toFixed(1):'—';$('#bmiLabel').textContent=b?b.label:'Συμπλήρωσε ύψος και βάρος';$('#weightRange').textContent=b?`${b.low.toFixed(1)}–${b.high.toFixed(1)} kg`:'—';if(p.height&&p.waist){const r=Number(p.waist)/Number(p.height);$('#whrValue').textContent=r.toFixed(2);$('#whrLabel').textContent=r<.5?'Κάτω από το 0,50':'Στο 0,50 ή υψηλότερα'}else{$('#whrValue').textContent='—';$('#whrLabel').textContent='Πρόσθεσε περίμετρο μέσης'}renderWeightChart(p);const h=$('#measurementHistory');h.innerHTML='';const list=[...(p.measurements||[])].sort((a,b)=>b.date.localeCompare(a.date));if(!list.length)h.innerHTML='<p class="muted">Δεν υπάρχουν καταχωρίσεις.</p>';list.forEach(m=>{const e=document.createElement('div');e.className='entry';e.innerHTML=`<div class="grow"><b>${fmtDate(m.date)}</b><span class="muted small">${m.weight?m.weight+' kg':''}${m.waist?' • Μέση '+m.waist+' cm':''}${m.chest?' • Στήθος '+m.chest+' cm':''}</span></div><button class="secondary edit-measurement">Επεξεργασία</button><button class="danger delete-measurement">×</button>`;e.querySelector('.edit-measurement').onclick=()=>openMeasurementModal(m);e.querySelector('.delete-measurement').onclick=()=>{p.measurements=p.measurements.filter(x=>x.id!==m.id);syncCurrentMeasurement(p);save()};h.appendChild(e)})}
+function openMeasurementModal(existing=null){const m=existing||{date:todayISO(),weight:currentWeightOf(person()),waist:person().waist||'',chest:'',arm:'',thigh:''};openModal(`<h2>${existing?'Επεξεργασία μέτρησης':'Νέα μέτρηση'}</h2><div class="form-grid"><label>Ημερομηνία<input id="mDate" type="date" value="${m.date||todayISO()}"></label><label>Βάρος (kg)<input id="mWeight" type="number" step="0.1" value="${m.weight||''}"></label><label>Μέση (cm)<input id="mWaist" type="number" step="0.1" value="${m.waist||''}"></label><label>Στήθος (cm)<input id="mChest" type="number" step="0.1" value="${m.chest||''}"></label><label>Μπράτσο (cm)<input id="mArm" type="number" step="0.1" value="${m.arm||''}"></label><label>Μηρός (cm)<input id="mThigh" type="number" step="0.1" value="${m.thigh||''}"></label></div><div class="modal-actions"><button value="cancel" class="secondary">Ακύρωση</button><button class="primary" id="saveMeasurement">Αποθήκευση</button></div>`);$('#saveMeasurement').onclick=e=>{e.preventDefault();const p=person(),data={id:existing?.id||uid(),date:$('#mDate').value,weight:$('#mWeight').value,waist:$('#mWaist').value,chest:$('#mChest').value,arm:$('#mArm').value,thigh:$('#mThigh').value};if(existing)Object.assign(existing,data);else p.measurements.push(data);syncCurrentMeasurement(p);closeModal();save();toast('Η μέτρηση αποθηκεύτηκε')}}
+$('#addMeasurementBtn').onclick=()=>openMeasurementModal();
+
+function allPrograms(){return [...starterPrograms,...(person().customPrograms||[])]}
+function programMuscle(p){return p.muscle||'full'}
+function renderPrograms(){
+ const g=$('#programGrid');g.innerHTML='';
+ const visible=allPrograms().filter(p=>activeFilter==='all'||p.place===activeFilter||p.level===activeFilter||programMuscle(p)===activeFilter);
+ visible.forEach(p=>{
+  const el=document.createElement('article');el.className='program-card card collapsed';
+  el.innerHTML=`<button type="button" class="program-summary" aria-expanded="false"><div><span class="tag">${p.place==='home'?'Σπίτι':'Γυμναστήριο'}</span><span class="tag">${p.duration}′</span><span class="tag">${muscleNames[programMuscle(p)]||'Πρόγραμμα'}</span><h3>${esc(p.title)}</h3><small>${p.exercises.length} ασκήσεις — πάτησε για άνοιγμα</small></div><span class="program-chevron">⌄</span></button><div class="program-details"><ul>${p.exercises.map(x=>`<li><button type="button" class="exercise-link" data-exercise="${encodeURIComponent(x[0])}">${esc(x[0])}</button> — ${x[1]} × ${x[2]}</li>`).join('')}</ul><div class="actions"><button class="primary use-program">Προγραμματισμός</button><button class="secondary view-program">Προβολή</button></div></div>`;
+  const summary=el.querySelector('.program-summary');summary.onclick=()=>{const open=el.classList.toggle('open');summary.setAttribute('aria-expanded',String(open))};
+  el.querySelector('.use-program').onclick=()=>scheduleProgram(p);el.querySelector('.view-program').onclick=()=>viewProgram(p);el.querySelectorAll('.exercise-link').forEach(b=>b.onclick=()=>showExercise(decodeURIComponent(b.dataset.exercise)));g.appendChild(el)
  })
 }
-function renderSequence(){state.sequenceDate=state.sequenceDate||iso(new Date());document.getElementById('sequenceDate').value=state.sequenceDate;const k=seqKey();if(!state.sequence[k])state.sequence[k]=blankSequence();state.sequence[k]=normalizeRows(state.sequence[k],6);const head=document.getElementById('sequenceHead');head.innerHTML='';SEQUENCE_HEADERS.forEach(h=>{const th=document.createElement('th');th.textContent=h;head.appendChild(th)});const body=document.getElementById('sequenceBody');body.innerHTML='';state.sequence[k].forEach((row,ri)=>{const tr=document.createElement('tr');if(row[5]==='ΝΑΙ')tr.classList.add('completed-row');const n=document.createElement('th');n.textContent=ri+1;tr.appendChild(n);row.forEach((v,ci)=>{const td=document.createElement('td');if(ci===5){const lab=document.createElement('label');lab.className='sequence-complete';const cb=document.createElement('input');cb.type='checkbox';cb.checked=v==='ΝΑΙ';cb.onchange=()=>{state.sequence[k][ri][ci]=cb.checked?'ΝΑΙ':'';tr.classList.toggle('completed-row',cb.checked);save()};lab.appendChild(cb);td.appendChild(lab)}else{const key=ci===0?'tanks':null;const x=makeInput(v,val=>state.sequence[k][ri][ci]=val,'',key,!!key);td.appendChild(x.wrap)}tr.appendChild(td)});body.appendChild(tr)})}
-
-function tankTonsPerMeter(tank){
- const t=normalizeMatch(tank).replace(/\s+/g,'');
- if(['Z2','Ζ2','Z3','Ζ3'].includes(t))return 13.54;
- if(['Z1','Ζ1','D1','Δ1','D2','Δ2','D3','Δ3'].includes(t))return 11.63;
- return 0;
+$$('[data-filter]').forEach(b=>b.onclick=()=>{activeFilter=b.dataset.filter;$$('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));renderPrograms()});
+function viewProgram(p){openModal(`<h2>${esc(p.title)}</h2><p class="muted">${p.duration} λεπτά • ${p.place==='home'?'Σπίτι':'Γυμναστήριο'}</p><div class="stack">${p.exercises.map(x=>`<div class="entry"><div class="grow"><button type="button" class="exercise-link" data-exercise="${encodeURIComponent(x[0])}">${esc(x[0])}</button><span class="muted small">${x[1]} σετ × ${x[2]} ${Number(x[2])>20?'δευτ.':'επαν.'}</span></div></div>`).join('')}</div><div class="modal-actions"><button value="cancel" class="secondary">Κλείσιμο</button><button class="primary" id="scheduleFromView">Προγραμματισμός</button></div>`);$('#modalContent').querySelectorAll('.exercise-link').forEach(b=>b.onclick=()=>showExercise(decodeURIComponent(b.dataset.exercise),true));$('#scheduleFromView').onclick=e=>{e.preventDefault();closeModal();scheduleProgram(p)}}
+function scheduleProgram(p,date=selectedDate){openModal(`<h2>Προγραμματισμός</h2><label>Ημερομηνία<input id="scheduleDate" type="date" value="${date||todayISO()}"></label><div class="modal-actions"><button value="cancel" class="secondary">Ακύρωση</button><button class="primary" id="confirmSchedule">Αποθήκευση</button></div>`);$('#confirmSchedule').onclick=e=>{e.preventDefault();const d=$('#scheduleDate').value,per=person();per.calendar[d]=per.calendar[d]||[];per.calendar[d].push({id:uid(),programId:p.id,title:p.title,done:false,exercises:p.exercises.map(x=>[...x])});closeModal();save();selectedDate=d;toast('Μπήκε στο ημερολόγιο')}}
+$('#newProgramBtn').onclick=()=>openProgramBuilder();
+function openProgramBuilder(){
+ openModal(`<h2>Νέο πρόγραμμα</h2><label>Όνομα<input id="progTitle" placeholder="π.χ. Πρόγραμμα στήθους"></label><div class="form-grid program-builder-filters"><label>Χώρος<select id="progPlace"><option value="home">Σπίτι / έξω</option><option value="gym">Γυμναστήριο</option></select></label><label>Μυϊκή ομάδα<select id="progMuscle"><option value="full">Όλο το σώμα</option><option value="chest">Στήθος</option><option value="back">Πλάτη</option><option value="shoulders">Ώμοι</option><option value="legs">Πόδια</option><option value="abs">Κοιλιακοί</option><option value="arms">Χέρια</option></select></label><label>Διάρκεια<input id="progDuration" type="number" value="45"></label></div><div class="suggestion-box"><b>Προτεινόμενες ασκήσεις</b><p class="muted small">Οι επιλογές αλλάζουν ανάλογα με τον χώρο και τη μυϊκή ομάδα.</p><div id="exerciseSuggestions" class="suggestion-chips"></div></div><h3>Ασκήσεις προγράμματος</h3><div id="exerciseBuilder"></div><button type="button" class="secondary" id="addExercise">+ Άσκηση</button><div class="modal-actions"><button value="cancel" class="secondary">Ακύρωση</button><button class="primary" id="saveProgram">Αποθήκευση</button></div>`);
+ const options=()=>{const place=$('#progPlace').value,muscle=$('#progMuscle').value;return exerciseCatalog.filter(x=>(muscle==='full'||x.muscle===muscle)&&x.places.includes(place))};
+ const add=(selected='')=>{const r=document.createElement('div');r.className='exercise-row';r.innerHTML=`<select class="exercise-select"></select><input type="number" value="3" min="1" aria-label="Σετ"><input type="number" value="10" min="1" aria-label="Επαναλήψεις"><button type="button" class="danger">×</button>`;const sel=r.querySelector('select');const names=[...new Set(exerciseCatalog.map(x=>x.name))].sort((a,b)=>a.localeCompare(b,'el'));sel.innerHTML='<option value="">Επίλεξε άσκηση</option>'+names.map(n=>`<option ${n===selected?'selected':''}>${esc(n)}</option>`).join('');r.querySelector('button').onclick=()=>r.remove();$('#exerciseBuilder').appendChild(r)};
+ const refresh=()=>{const list=options();$('#exerciseSuggestions').innerHTML=list.length?list.map(x=>`<button type="button" class="chip suggestion-add" data-name="${encodeURIComponent(x.name)}">+ ${esc(x.name)}</button>`).join(''):'<span class="muted small">Δεν βρέθηκαν ασκήσεις για αυτόν τον συνδυασμό.</span>';$$('.suggestion-add').forEach(b=>b.onclick=()=>add(decodeURIComponent(b.dataset.name)))};
+ $('#progPlace').onchange=refresh;$('#progMuscle').onchange=refresh;add();$('#addExercise').onclick=()=>add();refresh();
+ $('#saveProgram').onclick=e=>{e.preventDefault();const exercises=$$('#exerciseBuilder .exercise-row').map(r=>{const i=r.querySelectorAll('select,input');return[i[0].value.trim(),Number(i[1].value),Number(i[2].value)]}).filter(x=>x[0]);if(!$('#progTitle').value.trim()||!exercises.length)return;person().customPrograms.push({id:uid(),title:$('#progTitle').value.trim(),place:$('#progPlace').value,muscle:$('#progMuscle').value,level:person().level,duration:Number($('#progDuration').value),goal:person().goal,exercises});closeModal();save();toast('Το πρόγραμμα δημιουργήθηκε')}
 }
-function salesOrderCalc(row){
- const factor=tankTonsPerMeter(row.tank),meters=Math.max(0,Number(row.meters)||0),tankers=Math.max(0,Math.floor(Number(row.tankers)||0)),tonsPerTanker=Math.max(0,Number(row.tonsPerTanker)||0);
- const initialTons=meters*factor,soldTons=tankers*tonsPerTanker,remainingTons=Math.max(0,initialTons-soldTons),remainingMeters=factor?remainingTons/factor:0;
- const autoDone=!!row.tank&&initialTons>0&&remainingTons<=0.005;
- return {factor,meters,tankers,tonsPerTanker,initialTons,soldTons,remainingTons,remainingMeters,autoDone,done:!!row.manualDone||autoDone};
+function renderCalendar(){
+ const y=calDate.getFullYear(),m=calDate.getMonth();
+ $('#calendarMonth').textContent=new Intl.DateTimeFormat('el-GR',{month:'long',year:'numeric'}).format(calDate);
+ const first=new Date(y,m,1),offset=(first.getDay()+6)%7,days=new Date(y,m+1,0).getDate(),prevDays=new Date(y,m,0).getDate(),g=$('#calendarGrid');
+ g.innerHTML='';
+ for(let i=0;i<42;i++){
+  let d,mon=m,yr=y,out=false;
+  if(i<offset){d=prevDays-offset+i+1;mon=m-1;out=true}
+  else if(i>=offset+days){d=i-offset-days+1;mon=m+1;out=true}
+  else d=i-offset+1;
+  const dt=new Date(yr,mon,d),iso=[dt.getFullYear(),String(dt.getMonth()+1).padStart(2,'0'),String(dt.getDate()).padStart(2,'0')].join('-');
+  const b=document.createElement('button');
+  b.type='button';
+  const hasWorkout=(person().calendar[iso]||[]).length>0;
+  b.className='day'+(out?' out':'')+(iso===todayISO()?' today':'')+(hasWorkout?' has-workout':'')+(iso===selectedDate?' selected':'');
+  b.innerHTML=`<span>${d}</span>`;
+  b.onclick=()=>{
+   selectedDate=iso;
+   renderCalendar();
+   showDayQuickActions(iso);
+  };
+  g.appendChild(b);
+ }
+ renderDayPanel();
 }
-function normalizeSalesOrder(rows){
- const source=Array.isArray(rows)?rows:[];
- const out=source.map(r=>{
-  if(typeof r==='string')return {tank:upper(r),meters:'',tankers:'',tonsPerTanker:'',manualDone:false};
-  return {tank:upper(r?.tank||''),meters:r?.meters??'',tankers:r?.tankers??'',tonsPerTanker:r?.tonsPerTanker??'',manualDone:!!(r?.manualDone??r?.done)};
- });
- while(out.length<8)out.push({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false});
- return out
-}
-function makeNumberField(value,label,step='0.01',min='0'){
- const wrap=document.createElement('label');wrap.className='sales-metric-field';
- const span=document.createElement('span');span.textContent=label;
- const input=document.createElement('input');input.type='number';input.inputMode='decimal';input.min=min;input.step=step;input.value=value??'';
- wrap.append(span,input);return {wrap,input};
-}
-function metricBox(label,value,unit=''){
- const box=document.createElement('div');box.className='sales-metric-box';
- const l=document.createElement('span');l.textContent=label;
- const v=document.createElement('strong');v.textContent=value;
- const u=document.createElement('small');u.textContent=unit;
- box.append(l,v,u);return box;
-}
-function renderSalesOrder(){
- state.salesOrder=normalizeSalesOrder(state.salesOrder);
- const list=document.getElementById('salesOrderList'),empty=document.getElementById('salesOrderEmpty');
- if(!list)return;list.innerHTML='';
- const calculations=state.salesOrder.map(salesOrderCalc);
- const nextIndex=state.salesOrder.findIndex((r,i)=>r.tank&&!calculations[i].done);
- empty.hidden=state.salesOrder.some(r=>r.tank);
- state.salesOrder.forEach((row,ri)=>{
-  const calc=calculations[ri];
-  const li=document.createElement('li');li.className='sales-order-row sales-order-calculator';
-  if(calc.done)li.classList.add('sales-order-done');
-  if(ri===nextIndex)li.classList.add('sales-order-current');
-  const header=document.createElement('div');header.className='sales-order-header';
-  const number=document.createElement('span');number.className='sales-order-number';number.textContent=ri+1;
-  const x=makeInput(row.tank,val=>{state.salesOrder[ri].tank=val;renderSalesOrder()},'sales-order-input','tanks',true);
-  header.append(number,x.wrap);
-  const inputs=document.createElement('div');inputs.className='sales-order-inputs';
-  const meters=makeNumberField(row.meters,'ΑΡΧΙΚΗ ΣΤΑΘΜΗ (m)','0.01');
-  const tankers=makeNumberField(row.tankers,'ΑΡΙΘΜΟΣ ΒΥΤΙΩΝ','1');
-  const tons=makeNumberField(row.tonsPerTanker,'ΤΟΝΟΙ / ΒΥΤΙΟ','0.1');
-  const bindNum=(field,key)=>{field.input.onchange=()=>{state.salesOrder[ri][key]=field.input.value;renderSalesOrder();save()}};
-  bindNum(meters,'meters');bindNum(tankers,'tankers');bindNum(tons,'tonsPerTanker');
-  inputs.append(meters.wrap,tankers.wrap,tons.wrap);
-  const metrics=document.createElement('div');metrics.className='sales-order-metrics';
-  metrics.append(metricBox('ΣΥΝΤΕΛΕΣΤΗΣ',calc.factor?calc.factor.toFixed(2):'—','tn/m'),metricBox('ΑΡΧΙΚΟ',calc.initialTons.toFixed(1),'tn'),metricBox('ΠΩΛΗΘΗΚΑΝ',calc.soldTons.toFixed(1),'tn'),metricBox('ΥΠΟΛΟΙΠΟ',calc.remainingTons.toFixed(1),'tn'),metricBox('ΥΠΟΛΟΙΠΟ ΣΤΑΘΜΗΣ',calc.remainingMeters.toFixed(2),'m'));
-  const controls=document.createElement('div');controls.className='sales-order-controls';
-  const up=document.createElement('button');up.type='button';up.className='order-move';up.textContent='↑';up.title='Μετακίνηση πάνω';up.disabled=ri===0;up.onclick=()=>{[state.salesOrder[ri-1],state.salesOrder[ri]]=[state.salesOrder[ri],state.salesOrder[ri-1]];renderSalesOrder();save()};
-  const down=document.createElement('button');down.type='button';down.className='order-move';down.textContent='↓';down.title='Μετακίνηση κάτω';down.disabled=ri===state.salesOrder.length-1;down.onclick=()=>{[state.salesOrder[ri+1],state.salesOrder[ri]]=[state.salesOrder[ri],state.salesOrder[ri+1]];renderSalesOrder();save()};
-  const done=document.createElement('button');done.type='button';done.className='sales-order-done-btn';done.textContent=calc.autoDone?'ΤΕΛΕΙΩΣΕ ΑΥΤΟΜΑΤΑ':(row.manualDone?'ΕΠΑΝΑΦΟΡΑ':'ΑΔΕΙΑΣΕ / ΤΕΛΟΣ');done.disabled=!row.tank||calc.autoDone;done.onclick=()=>{state.salesOrder[ri].manualDone=!state.salesOrder[ri].manualDone;renderSalesOrder();save()};
-  const remove=document.createElement('button');remove.type='button';remove.className='sales-order-remove';remove.textContent='✕';remove.title='Αφαίρεση';remove.onclick=()=>{state.salesOrder.splice(ri,1);state.salesOrder.push({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false});renderSalesOrder();save()};
-  controls.append(up,down,done,remove);
-  li.append(header,inputs,metrics,controls);list.appendChild(li)
+function renderDayPanel(){
+ $('#selectedDateTitle').textContent=fmtDate(selectedDate);
+ const a=person().calendar[selectedDate]||[],g=$('#dayEntries');g.innerHTML='';
+ if(!a.length)g.innerHTML='<p class="muted">Δεν υπάρχει καταχωρισμένη προπόνηση.</p>';
+ a.forEach(e=>{
+  const row=document.createElement('div');row.className='entry'+(e.done?' done':'');
+  row.innerHTML=`<div class="grow"><b>${esc(e.title)}</b><span class="muted small">${e.done?'Ολοκληρώθηκε':'Προγραμματισμένη'}</span></div><button type="button" class="primary">${e.done?'Προβολή':'Έναρξη'}</button><button type="button" class="danger">×</button>`;
+  row.querySelector('.primary').onclick=()=>openWorkout(e,selectedDate);
+  row.querySelector('.danger').onclick=()=>{person().calendar[selectedDate]=a.filter(x=>x.id!==e.id);save();renderCalendar()};
+  g.appendChild(row)
  })
 }
-function defaultShiftForHour(){const h=new Date().getHours();if(h>=7&&h<15)return 'ΠΡΩΙ';if(h>=15&&h<23)return 'ΑΠΟΓΕΥΜΑ';return 'ΒΡΑΔΥ'}
-function blankWorkProgram(){return {shift:defaultShiftForHour(),loadingRows:Array.from({length:4},()=>({company:'',tanker:'',tank:'',done:false})),manualTasks:Array.from({length:3},()=>({text:'',done:false})),analysisResults:{},shiftLog:''}}
-function normalizeWorkProgram(v){const b=blankWorkProgram(),x=v&&typeof v==='object'?v:{};return {shift:WORK_SHIFT_TIMES[x.shift]?x.shift:b.shift,loadingRows:(Array.isArray(x.loadingRows)?x.loadingRows:[]).map(r=>({company:upper(r?.company||''),tanker:upper(r?.tanker||''),tank:upper(r?.tank||''),done:!!r?.done})),manualTasks:(Array.isArray(x.manualTasks)?x.manualTasks:[]).map(r=>({text:String(r?.text||''),done:!!r?.done})),analysisResults:x.analysisResults&&typeof x.analysisResults==='object'?x.analysisResults:{},shiftLog:String(x.shiftLog||'')}}
-function workProgramKey(){return state.workProgramDate||iso(new Date())}
-function ensureWorkProgram(){state.workProgramDate=state.workProgramDate||iso(new Date());const k=workProgramKey();state.workPrograms=state.workPrograms||{};state.workPrograms[k]=normalizeWorkProgram(state.workPrograms[k]);return state.workPrograms[k]}
-function makeTaskInput(value,placeholder,oninput,listKey=null){const input=document.createElement('input');input.type='text';input.value=value||'';input.placeholder=placeholder;input.autocomplete='off';input.spellcheck=true;input.oninput=()=>{input.value=listKey?upper(input.value):input.value;oninput(input.value);autosave()};return input}
-function analysisSavedValue(program,time,name,field,fieldIndex){
- const key=time+'|'+name+'|'+field.key;
- if(program.analysisResults[key]!==undefined)return program.analysisResults[key];
- const legacyKey=time+'|'+name;
- if(fieldIndex===0&&program.analysisResults[legacyKey]!==undefined)return program.analysisResults[legacyKey];
- // Μεταφορά αποτελεσμάτων από την προηγούμενη έκδοση χωρίς απώλεια.
- if(name==='R-201'&&field.key==='naoh')return program.analysisResults[time+'|R-201|value']||'';
- if(name==='C-201'&&field.key==='ppb')return program.analysisResults[time+'|C-201|value']||'';
- return '';
+$('#prevMonth').onclick=()=>{calDate.setMonth(calDate.getMonth()-1);renderCalendar()};
+$('#nextMonth').onclick=()=>{calDate.setMonth(calDate.getMonth()+1);renderCalendar()};
+$('#calendarTodayBtn').onclick=()=>{calDate=new Date();selectedDate=todayISO();renderCalendar()};
+function addSimpleWorkout(date=selectedDate){
+ const per=person();per.calendar[date]=per.calendar[date]||[];
+ per.calendar[date].push({id:uid(),title:'Προπόνηση',done:true,duration:0,exercises:[],completedAt:new Date().toISOString()});
+ hideDayQuickActions();
+ save();renderCalendar();toast('Η προπόνηση καταχωρίστηκε');
 }
-function renderWorkProgram(){const dateInput=document.getElementById('workProgramDate');if(!dateInput)return;const program=ensureWorkProgram();dateInput.value=state.workProgramDate;const shift=document.getElementById('workProgramShift');shift.value=program.shift;document.getElementById('analysisShiftLabel').textContent=program.shift+' • '+WORK_SHIFT_TIMES[program.shift].join(' · ');
- const loading=document.getElementById('loadingTasks');loading.innerHTML='';if(!program.loadingRows.length)program.loadingRows.push({company:'',tanker:'',tank:'',done:false});program.loadingRows.forEach((row,i)=>{const item=document.createElement('div');item.className='task-row loading-task'+(row.done?' task-done':'');const done=document.createElement('input');done.type='checkbox';done.checked=row.done;done.setAttribute('aria-label','Ολοκληρώθηκε');done.onchange=()=>{row.done=done.checked;renderWorkProgram();save()};
- const labelled=(label,node,cls)=>{const wrap=document.createElement('label');wrap.className='loading-field '+cls;const cap=document.createElement('span');cap.textContent=label;wrap.append(cap,node);return wrap};
- const company=makeInput(row.company,v=>row.company=v,'work-company-input','clients',true,{addToClients:true});const companyField=labelled('ΠΕΛΑΤΗΣ / ΕΤΑΙΡΙΑ',company.wrap,'loading-company-field');
- const tanker=makeTaskInput(row.tanker,'ΓΡΑΨΕ ΟΝΟΜΑ Ή ΑΡΙΘΜΟ ΒΥΤΙΟΥ',v=>row.tanker=v);const tankerField=labelled('ΒΥΤΙΟ',tanker,'loading-tanker-field');
- const tank=makeInput(row.tank,v=>row.tank=v,'work-tank-input','tanks',true);const tankField=labelled('ΔΕΞΑΜΕΝΗ ΠΟΥ ΘΑ ΓΕΜΙΣΕΙ',tank.wrap,'loading-tank-field');
- const remove=document.createElement('button');remove.type='button';remove.className='task-remove';remove.textContent='✕';remove.onclick=()=>{program.loadingRows.splice(i,1);renderWorkProgram();save()};item.append(done,companyField,tankerField,tankField,remove);loading.appendChild(item)});
- const manual=document.getElementById('manualTasks');manual.innerHTML='';if(!program.manualTasks.length)program.manualTasks.push({text:'',done:false});program.manualTasks.forEach((row,i)=>{const item=document.createElement('div');item.className='task-row manual-task'+(row.done?' task-done':'');const done=document.createElement('input');done.type='checkbox';done.checked=row.done;done.onchange=()=>{row.done=done.checked;renderWorkProgram();save()};const select=document.createElement('select');select.className='task-preset-select';select.innerHTML='<option value="">ΕΠΙΛΟΓΗ ΕΡΓΑΣΙΑΣ ▾</option>'+WORK_TASK_OPTIONS.map(x=>`<option value="${x}">${x}</option>`).join('');select.onchange=()=>{if(select.value){row.text=select.value;renderWorkProgram();save()}};const text=makeTaskInput(row.text,'ΕΠΙΛΕΞΕ Ή ΓΡΑΨΕ ΟΤΙ ΘΕΛΕΙΣ',v=>row.text=v);const remove=document.createElement('button');remove.type='button';remove.className='task-remove';remove.textContent='✕';remove.onclick=()=>{program.manualTasks.splice(i,1);renderWorkProgram();save()};item.append(done,select,text,remove);manual.appendChild(item)});
- const log=document.getElementById('shiftLog');if(log){log.value=program.shiftLog||'';log.classList.toggle('completed-field',!!log.value.trim());log.oninput=()=>{program.shiftLog=log.value;log.classList.toggle('completed-field',!!log.value.trim());autosave()}}
- const schedule=document.getElementById('analysisSchedule');schedule.innerHTML='';WORK_SHIFT_TIMES[program.shift].forEach((time,slotIndex)=>{const slot=document.createElement('section');slot.className='analysis-slot';const head=document.createElement('div');head.className='analysis-slot-head';const headTitle=document.createElement('strong');headTitle.textContent=time;const progress=document.createElement('span');progress.className='analysis-progress';head.append(headTitle,progress);slot.appendChild(head);const grid=document.createElement('div');grid.className='analysis-grid';const cards=[];
-  const refreshProgress=()=>{let doneCards=0;cards.forEach(({card,inputs})=>{const complete=inputs.length>0&&inputs.every(input=>input.value.trim());card.classList.toggle('analysis-complete',complete);if(complete)doneCards++});const total=cards.length;progress.textContent=`${slotIndex+1}η φορά • ${doneCards}/${total}`;slot.classList.toggle('analysis-slot-complete',total>0&&doneCards===total)};
-  ANALYSIS_GROUPS[slotIndex].forEach(name=>{const card=document.createElement('div');card.className='analysis-result';const title=document.createElement('strong');title.className='analysis-name';title.textContent=name;card.appendChild(title);const inputs=[];const fields=ANALYSIS_FIELDS[name]||[{key:'value',label:'ΑΠΟΤΕΛΕΣΜΑ',unit:''}];fields.forEach((field,fi)=>{const key=time+'|'+name+'|'+field.key;const legacyKey=time+'|'+name;const wrap=document.createElement('label');wrap.className='analysis-measure';const caption=document.createElement('span');caption.textContent=field.label+(field.unit?' ('+field.unit+')':'');const input=document.createElement('input');input.type='text';input.inputMode='text';input.placeholder=field.unit||'ΑΠΟΤΕΛΕΣΜΑ';input.value=analysisSavedValue(program,time,name,field,fi);input.classList.toggle('completed-field',!!input.value.trim());input.oninput=()=>{program.analysisResults[key]=input.value;if(fi===0&&program.analysisResults[legacyKey]!==undefined)delete program.analysisResults[legacyKey];if(name==='R-201'&&field.key==='naoh')delete program.analysisResults[time+'|R-201|value'];if(name==='C-201'&&field.key==='ppb')delete program.analysisResults[time+'|C-201|value'];input.classList.toggle('completed-field',!!input.value.trim());refreshProgress();autosave()};inputs.push(input);wrap.append(caption,input);card.appendChild(wrap)});cards.push({card,inputs});grid.appendChild(card)});slot.appendChild(grid);schedule.appendChild(slot);refreshProgress()})}
-
-function initLists(){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set((state.lists[k]||[]).map(upper).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}}
-function saveLists(show=false){for(const k of ['clients','tanks','carriers','other']){state.lists[k]=[...new Set(document.getElementById(k+'List').value.split(/\r?\n/).map(x=>upper(x.trim())).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'));document.getElementById(k+'List').value=state.lists[k].join('\n')}save();if(show)alert('Οι λίστες αποθηκεύτηκαν αλφαβητικά.')}
-const autoLists=debounce(()=>saveLists(false));
-function bindTabs(){document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.view).classList.add('active')})}
-function normalizeMatch(v){return upper(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-ZΑ-Ω0-9]+/g,' ').trim()}
-function bestClientInLine(line){
- const clean=normalizeMatch(line);let best=null,bestScore=Infinity;
- for(const client of suggestions('clients')){
-  const n=normalizeMatch(client);let score=Infinity;
-  if(clean===n)score=0;else if(clean.includes(n))score=1;else if(n.includes(clean)&&clean.length>=4)score=2;else{const d=editDistance(clean,n);if(d<=Math.max(1,Math.floor(n.length*.2)))score=3+d/n.length}
-  if(score<bestScore){bestScore=score;best=client}
+function showDayQuickActions(date){
+ let box=document.querySelector('#dayQuickActions');
+ if(!box){
+  box=document.createElement('div');box.id='dayQuickActions';box.className='day-action-overlay';
+  box.innerHTML=`<div class="day-action-card"><button type="button" class="day-action-close" aria-label="Κλείσιμο">×</button><div class="eyebrow">ΕΠΙΛΕΓΜΕΝΗ ΗΜΕΡΑ</div><h2 id="quickDateTitle"></h2><p>Θέλεις να σημειώσεις ότι έκανες προπόνηση αυτή την ημέρα;</p><button type="button" class="primary day-action-add">+ Προσθήκη προπόνησης</button><p class="muted small">Δεν χρειάζεται να γράψεις ασκήσεις ή διάρκεια.</p></div>`;
+  document.body.appendChild(box);
+  box.querySelector('.day-action-close').onclick=hideDayQuickActions;
+  box.addEventListener('click',e=>{if(e.target===box)hideDayQuickActions()});
  }
- return bestScore<10?best:null
+ box.querySelector('#quickDateTitle').textContent=fmtDate(date);
+ box.querySelector('.day-action-add').onclick=()=>addSimpleWorkout(date);
+ box.classList.add('show');
 }
-function parseOcrDate(text){
- const m=String(text||'').match(/\b([0-3]?\d)[\/\-.]([01]?\d)(?:[\/\-.](\d{2,4}))?\b/);
- if(!m)return null;
- let y=m[3]?Number(m[3]):new Date().getFullYear();if(y<100)y+=2000;
- const d=new Date(y,Number(m[2])-1,Number(m[1]),12,0,0);
- return Number.isNaN(d.getTime())?null:d
+function hideDayQuickActions(){document.querySelector('#dayQuickActions')?.classList.remove('show')}
+$('#addDayWorkoutBtn').onclick=()=>addSimpleWorkout(selectedDate);
+function openWorkout(entry,date){
+ entry.exercises=entry.exercises||[];openModal(`<h2>${esc(entry.title)}</h2><p class="muted">${fmtDate(date)}</p><label>Διάρκεια προπόνησης (λεπτά)<input id="workoutDuration" type="number" min="0" value="${entry.duration||''}" placeholder="π.χ. 60"></label><h3>Ασκήσεις</h3><div id="workoutEditor" class="workout-editor"></div><button type="button" class="secondary" id="addWorkoutExercise">+ Άσκηση</button><div class="modal-actions"><button value="cancel" class="secondary">Κλείσιμο</button><button type="button" class="secondary" id="saveWorkoutChanges">Αποθήκευση αλλαγών</button><button type="button" class="primary" id="finishWorkout">${entry.done?'Αποθήκευση ως ολοκληρωμένη':'Ολοκλήρωση'}</button></div>`);
+ const host=$('#workoutEditor');const addRow=(x=['',3,10])=>{const r=document.createElement('div');r.className='workout-exercise-row';r.innerHTML=`<label>Άσκηση<input class="we-name" value="${esc(x[0]||'')}"><button type="button" class="exercise-link we-image">Προβολή εικόνας</button></label><label>Σετ<input class="we-sets" type="number" min="1" value="${x[1]||3}"></label><label>Επαν.<input class="we-reps" type="number" min="1" value="${x[2]||10}"></label><button type="button" class="danger">×</button>`;r.querySelector('.danger').onclick=()=>r.remove();r.querySelector('.we-image').onclick=()=>showExercise(r.querySelector('.we-name').value);host.appendChild(r)};entry.exercises.forEach(addRow);$('#addWorkoutExercise').onclick=()=>addRow();
+ const collect=()=>{entry.duration=Number($('#workoutDuration').value||0);entry.exercises=$$('#workoutEditor .workout-exercise-row').map(r=>[r.querySelector('.we-name').value.trim(),Number(r.querySelector('.we-sets').value||1),Number(r.querySelector('.we-reps').value||1)]).filter(x=>x[0]);};
+ $('#saveWorkoutChanges').onclick=()=>{collect();closeModal();save();renderCalendar();toast('Οι αλλαγές αποθηκεύτηκαν')};$('#finishWorkout').onclick=()=>{collect();entry.done=true;entry.completedAt=new Date().toISOString();closeModal();save();renderCalendar();toast('Η προπόνηση αποθηκεύτηκε')};
 }
-function weekdayIndexFromDate(d){return (d.getDay()+6)%7}
-function extractWeeklyLayout(data){
- const rawLines=(data.lines||[]).filter(x=>x&&x.text&&x.bbox);
- const dateHeads=[];
- for(const line of rawLines){const d=parseOcrDate(line.text);if(d){dateHeads.push({dayIndex:weekdayIndexFromDate(d),x:(line.bbox.x0+line.bbox.x1)/2,y:line.bbox.y1,date:d})}}
- const entries=[];
- for(const line of rawLines){const client=bestClientInLine(line.text);if(!client)continue;const x=(line.bbox.x0+line.bbox.x1)/2,y=(line.bbox.y0+line.bbox.y1)/2;let dayIndex=null;
-  const candidates=dateHeads.filter(h=>y>=h.y-20);
-  if(candidates.length){candidates.sort((a,b)=>Math.abs(a.x-x)-Math.abs(b.x-x));dayIndex=candidates[0].dayIndex}
-  if(dayIndex===null){const now=new Date();dayIndex=weekdayIndexFromDate(now)}
-  entries.push({name:client,dayIndex,y,x})
- }
- entries.sort((a,b)=>a.dayIndex-b.dayIndex||a.y-b.y||a.x-b.x);
- return entries
-}
-function extractWeeklyClients(text){
- const out=[];for(const line of text.split(/\r?\n/)){const c=bestClientInLine(line);if(c)out.push(c)}return out
-}
-function extractDailyClients(text){
- const raw=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),norm=raw.map(normalizeMatch),out=[];
- // Στο καθημερινό Excel κάθε εγγραφή έχει την ένδειξη ΠΕΛΑΤΗΣ. Παίρνουμε μόνο
- // το όνομα που ακολουθεί, ώστε να μην αντιγράφεται ο ίδιος πελάτης από τη στήλη ΜΕΤΑΦΟΡΕΑΣ.
- for(let i=0;i<norm.length;i++){
-  if(norm[i].includes('ΠΕΛΑΤ')||norm[i].includes('PELATH')){
-   for(let j=i+1;j<Math.min(norm.length,i+4);j++){
-    if(norm[j].includes('ΑΠΟ ΔΕΞΑΜΕΝ')||norm[j].includes('ΜΕΤΑΦΟΡΕ')||norm[j].includes('ΠΟΣΟΤΗΤ'))break;
-    const c=bestClientInLine(raw[j]);if(c){out.push(c);i=j;break}
+function exercisePose(name){const n=name.toLowerCase();if(n.includes('κάμψ')||n.includes('πιέσεις στήθους'))return 'push';if(n.includes('κωπηλα'))return 'row';if(n.includes('καθίσ')||n.includes('προβολ'))return 'squat';if(n.includes('άρσεις θανάτου'))return 'hinge';if(n.includes('σανίδα')||n.includes('ορειβά'))return 'plank';if(n.includes('ώμων')||n.includes('πλάγιες άρσεις'))return 'press';if(n.includes('δικεφάλ'))return 'curl';if(n.includes('τρικεφάλ'))return 'triceps';if(n.includes('γέφυρ'))return 'bridge';return 'general'}
+function exerciseSvg(name){
+ const pose=exercisePose(name);
+ const head=(x,y)=>`<ellipse class="skin" cx="${x}" cy="${y}" rx="18" ry="22"/><path class="hair" d="M${x-17} ${y-5} Q${x} ${y-27} ${x+18} ${y-5} Q${x+5} ${y-15} ${x-17} ${y-5}"/>`;
+ const dumbbell=(x,y,rot=0)=>`<g transform="translate(${x} ${y}) rotate(${rot})"><rect class="metal" x="-16" y="-4" width="32" height="8" rx="4"/><rect class="weight" x="-28" y="-11" width="10" height="22" rx="3"/><rect class="weight" x="18" y="-11" width="10" height="22" rx="3"/></g>`;
+ const standing=(x,end,kind)=>{
+   const hy=70, shoulder=112, hip=178, knee=225, foot=272;
+   let arms='',legs='',torso=`<path class="shirt" d="M${x-34} ${shoulder} Q${x} ${shoulder-12} ${x+34} ${shoulder} L${x+24} ${hip} Q${x} ${hip+10} ${x-24} ${hip} Z"/>`;
+   if(kind==='squat'){
+     const dy=end?34:0, hx=x+(end?18:0), sy=shoulder+dy, hipy=hip+dy;
+     torso=`<path class="shirt" d="M${x-32} ${sy} Q${hx} ${sy-12} ${x+38} ${sy+8} L${x+18} ${hipy} Q${hx} ${hipy+8} ${x-20} ${hipy-3} Z"/>`;
+     legs=`<path class="limb" d="M${x-12} ${hipy} L${x-48} ${end?220:225} L${x-70} ${foot}"/><path class="limb" d="M${x+12} ${hipy} L${x+58} ${end?220:225} L${x+76} ${foot}"/><path class="shoe" d="M${x-83} ${foot} h34"/><path class="shoe" d="M${x+61} ${foot} h34"/>`;
+     arms=`<path class="arm" d="M${x-24} ${sy+15} L${x-58} ${sy+42} L${x-40} ${sy+62}"/><path class="arm" d="M${x+24} ${sy+15} L${x+58} ${sy+42} L${x+40} ${sy+62}"/>${dumbbell(x-42,sy+64)}${dumbbell(x+42,sy+64)}`;
+     return `<g>${head(x+(end?18:0),hy+dy)}${torso}${arms}${legs}</g>`;
    }
-  }
- }
- // Εφεδρικά, όταν το OCR δεν διάβασε τις επικεφαλίδες, κρατάμε γνωστά ονόματα
- // και αφαιρούμε μόνο διαδοχικές διπλοεγγραφές.
- if(!out.length){for(const line of raw){const c=bestClientInLine(line);if(c&&out[out.length-1]!==c)out.push(c)}}
- return out
+   if(kind==='press'){
+     legs=`<path class="limb" d="M${x-12} ${hip} L${x-18} ${knee} L${x-28} ${foot}"/><path class="limb" d="M${x+12} ${hip} L${x+18} ${knee} L${x+28} ${foot}"/><path class="shoe" d="M${x-42} ${foot} h30"/><path class="shoe" d="M${x+14} ${foot} h30"/>`;
+     if(end){arms=`<path class="arm" d="M${x-24} ${shoulder+15} L${x-42} 86 L${x-40} 42"/><path class="arm" d="M${x+24} ${shoulder+15} L${x+42} 86 L${x+40} 42"/>${dumbbell(x-40,34)}${dumbbell(x+40,34)}`}
+     else{arms=`<path class="arm" d="M${x-24} ${shoulder+15} L${x-58} 132 L${x-44} 96"/><path class="arm" d="M${x+24} ${shoulder+15} L${x+58} 132 L${x+44} 96"/>${dumbbell(x-44,91)}${dumbbell(x+44,91)}`}
+   } else if(kind==='curl'){
+     legs=`<path class="limb" d="M${x-12} ${hip} L${x-18} ${knee} L${x-28} ${foot}"/><path class="limb" d="M${x+12} ${hip} L${x+18} ${knee} L${x+28} ${foot}"/><path class="shoe" d="M${x-42} ${foot} h30"/><path class="shoe" d="M${x+14} ${foot} h30"/>`;
+     arms=end?`<path class="arm" d="M${x-24} ${shoulder+15} L${x-42} 155 L${x-52} 116"/><path class="arm" d="M${x+24} ${shoulder+15} L${x+42} 155 L${x+52} 116"/>${dumbbell(x-54,108)}${dumbbell(x+54,108)}`:`<path class="arm" d="M${x-24} ${shoulder+15} L${x-40} 166 L${x-44} 208"/><path class="arm" d="M${x+24} ${shoulder+15} L${x+40} 166 L${x+44} 208"/>${dumbbell(x-44,214)}${dumbbell(x+44,214)}`;
+   } else {
+     legs=`<path class="limb" d="M${x-12} ${hip} L${x-18} ${knee} L${x-28} ${foot}"/><path class="limb" d="M${x+12} ${hip} L${x+18} ${knee} L${x+28} ${foot}"/><path class="shoe" d="M${x-42} ${foot} h30"/><path class="shoe" d="M${x+14} ${foot} h30"/>`;
+     arms=`<path class="arm" d="M${x-24} ${shoulder+15} L${x-48} 164 L${x-50} 210"/><path class="arm" d="M${x+24} ${shoulder+15} L${x+48} 164 L${x+50} 210"/>${dumbbell(x-50,216)}${dumbbell(x+50,216)}`;
+   }
+   return `<g>${head(x,hy)}${torso}${arms}${legs}</g>`;
+ };
+ const floorPose=(x,end,kind)=>{
+   if(kind==='push'||kind==='plank'){
+     const y=end&&kind==='push'?210:176;
+     return `<g>${head(x-78,y-26)}<path class="shirt" d="M${x-55} ${y-20} L${x+34} ${y-2} L${x+28} ${y+25} L${x-60} ${y+8} Z"/><path class="limb" d="M${x+30} ${y+10} L${x+92} ${y+24} L${x+128} ${y+28}"/><path class="arm" d="M${x-42} ${y-3} L${x-30} ${end?250:225} L${x-10} ${end?250:225}"/><path class="shoe" d="M${x+115} ${y+28} h28"/></g>`;
+   }
+   if(kind==='bridge'){
+     const lift=end?44:0;
+     return `<g>${head(x-88,220-lift)}<path class="shirt" d="M${x-66} ${216-lift} L${x+15} ${205-lift} L${x+40} ${228-lift} L${x-58} ${242-lift} Z"/><path class="limb" d="M${x+35} ${224-lift} L${x+76} 252 L${x+110} 252"/><path class="arm" d="M${x-45} ${230-lift} L${x-20} 258"/><path class="shoe" d="M${x+95} 252 h30"/></g>`;
+   }
+   return standing(x,end,kind);
+ };
+ const hinge=(x,end,kind)=>{
+   const tilt=end?20:0;
+   return `<g transform="rotate(${tilt} ${x} 175)">${head(x-8,72)}<path class="shirt" d="M${x-35} 108 Q${x} 96 ${x+34} 112 L${x+26} 178 L${x-20} 181 Z"/><path class="limb" d="M${x-10} 178 L${x-26} 226 L${x-32} 274"/><path class="limb" d="M${x+12} 178 L${x+30} 226 L${x+36} 274"/><path class="arm" d="M${x-25} 124 L${x-55} ${end?170:202} L${x-52} ${end?216:232}"/><path class="arm" d="M${x+25} 124 L${x+55} ${end?170:202} L${x+52} ${end?216:232}"/>${dumbbell(x-52,end?220:238)}${dumbbell(x+52,end?220:238)}<path class="shoe" d="M${x-47} 274 h30"/><path class="shoe" d="M${x+21} 274 h30"/></g>`;
+ };
+ const fig=(x,end)=> pose==='hinge'||pose==='row'?hinge(x,end,pose):pose==='push'||pose==='plank'||pose==='bridge'?floorPose(x,end,pose):standing(x,end,pose);
+ return `<svg viewBox="0 0 760 340" role="img" aria-label="Οδηγίες εκτέλεσης ${esc(name)}"><defs><style>.skin{fill:#d7a47e;stroke:#684b3d;stroke-width:3}.hair{fill:#3b2a22}.shirt{fill:var(--primary);stroke:#263746;stroke-width:4;stroke-linejoin:round}.limb,.arm{fill:none;stroke:#d7a47e;stroke-width:18;stroke-linecap:round;stroke-linejoin:round}.shoe{fill:none;stroke:#263746;stroke-width:12;stroke-linecap:round}.metal{fill:#6b7884}.weight{fill:#263746}.label{fill:var(--text);font:600 19px system-ui}.hint{fill:var(--muted);font:16px system-ui}.arrow{fill:none;stroke:var(--primary);stroke-width:8;stroke-linecap:round;stroke-linejoin:round}</style></defs><rect x="14" y="14" width="350" height="312" rx="22" fill="var(--surface-2)"/><rect x="396" y="14" width="350" height="312" rx="22" fill="var(--surface-2)"/><text class="label" x="189" y="42" text-anchor="middle">Αρχική θέση</text><text class="label" x="571" y="42" text-anchor="middle">Τελική θέση</text>${fig(190,false)}${fig(570,true)}<path class="arrow" d="M365 170 H393 M383 158 L395 170 L383 182"/></svg>`;
 }
-function loadImageBitmapFromFile(file){
- return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{URL.revokeObjectURL(img.src);resolve(img)};img.onerror=()=>reject(new Error('Δεν μπόρεσε να ανοίξει η εικόνα.'));img.src=URL.createObjectURL(file)})
+function exerciseImagePair(name){
+ const pose=exercisePose(name), base='https://commons.wikimedia.org/wiki/Special:Redirect/file/';
+ const files={
+  squat:['Squats-1.png','Squats-2-1.png'],
+  hinge:['Romanian-deadlift-1.png','Romanian-deadlift-2.png'],
+  press:['Dumbbell-shoulder-press-1.png','Dumbbell-shoulder-press-2.png'],
+  curl:['Biceps curl with dumbbell 1.svg','Biceps curl with dumbbell 2.svg'],
+  row:['Dumbbell-upright-row-1.png','Dumbbell-upright-row-2.png'],
+  push:['Dumbbell-bench-press-1.png','Dumbbell-bench-press-2.png'],
+  triceps:['One-arm-triceps-extension-1.png','One-arm-triceps-extension-2.png'],
+  bridge:['Squats-1.png','Squats-2-1.png'],
+  plank:['Push-up-1.png','Push-up-2.png'],
+  general:['Dumbbell-shoulder-press-1.png','Dumbbell-shoulder-press-2.png']
+ };
+ const pair=files[pose]||files.general;
+ return pair.map(f=>base+encodeURIComponent(f));
 }
-function makeOcrCanvas(img,rotation=0,mode='contrast'){
- const maxSide=2400,scale=Math.min(2.2,maxSide/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
- const sw=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)),sh=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
- const rot=((rotation%360)+360)%360,c=document.createElement('canvas');
- c.width=(rot===90||rot===270)?sh:sw;c.height=(rot===90||rot===270)?sw:sh;
- const ctx=c.getContext('2d',{willReadFrequently:true});ctx.save();
- if(rot===90){ctx.translate(c.width,0);ctx.rotate(Math.PI/2)}else if(rot===180){ctx.translate(c.width,c.height);ctx.rotate(Math.PI)}else if(rot===270){ctx.translate(0,c.height);ctx.rotate(-Math.PI/2)}
- ctx.drawImage(img,0,0,sw,sh);ctx.restore();
- if(mode!=='plain'){
-  const im=ctx.getImageData(0,0,c.width,c.height),d=im.data;
-  for(let i=0;i<d.length;i+=4){let g=.299*d[i]+.587*d[i+1]+.114*d[i+2];if(mode==='threshold')g=g>176?255:0;else g=Math.max(0,Math.min(255,(g-128)*1.65+128));d[i]=d[i+1]=d[i+2]=g}
-  ctx.putImageData(im,0,0)
- }
- return c
+function exerciseGuide(name){
+ const n=name.toLowerCase();
+ const guide=(steps,muscles,breathing,mistakes,tips)=>({steps,muscles,breathing,mistakes,tips});
+ if(n.includes('καθίσ')) return guide(
+  ['Στάσου με τα πόδια περίπου στο άνοιγμα των ώμων και κράτησε τον κορμό σφιχτό.','Στείλε τη λεκάνη πίσω και λύγισε τα γόνατα, κρατώντας τις φτέρνες στο έδαφος.','Κατέβα μέχρι εκεί που ελέγχεις τη μέση σου και έπειτα πίεσε από τις φτέρνες για να σηκωθείς.'],
+  ['Τετρακέφαλοι','Γλουτοί','Οπίσθιοι μηριαίοι','Κορμός'],
+  'Εισπνοή στο κατέβασμα και εκπνοή καθώς ανεβαίνεις.',
+  ['Τα γόνατα να κλείνουν προς τα μέσα.','Οι φτέρνες να σηκώνονται από το έδαφος.','Η μέση να στρογγυλεύει.'],
+  ['Κοίτα μπροστά.','Κράτησε τα γόνατα στην ίδια κατεύθυνση με τα πέλματα.','Κάνε την κίνηση αργά και ελεγχόμενα.']);
+ if(n.includes('προβολ')) return guide(
+  ['Κάνε ένα ελεγχόμενο βήμα μπροστά ή πίσω, ανάλογα με την άσκηση.','Χαμήλωσε τη λεκάνη ώσπου και τα δύο γόνατα να λυγίσουν περίπου στις 90°.','Πίεσε από το μπροστινό πέλμα και επέστρεψε στην αρχική θέση.'],
+  ['Τετρακέφαλοι','Γλουτοί','Οπίσθιοι μηριαίοι','Κορμός'],
+  'Εισπνοή στο κατέβασμα και εκπνοή στην επιστροφή.',
+  ['Το μπροστινό γόνατο να πέφτει προς τα μέσα.','Πολύ στενό βήμα που χάνει την ισορροπία.','Ο κορμός να γέρνει απότομα μπροστά.'],
+  ['Κράτησε τον κορμό ψηλά.','Πάτησε ολόκληρο το μπροστινό πέλμα.']);
+ if(n.includes('κάμψ')) return guide(
+  ['Τοποθέτησε τα χέρια λίγο πιο ανοιχτά από τους ώμους και κράτησε το σώμα σε ευθεία γραμμή.','Λύγισε τους αγκώνες και κατέβασε το στήθος ελεγχόμενα.','Πίεσε το έδαφος και επέστρεψε χωρίς να χαλάσει η θέση της μέσης.'],
+  ['Στήθος','Τρικέφαλοι','Πρόσθιοι ώμοι','Κορμός'],
+  'Εισπνοή καθώς κατεβαίνεις και εκπνοή καθώς πιέζεις προς τα πάνω.',
+  ['Η μέση να βουλιάζει.','Οι αγκώνες να ανοίγουν τελείως στο πλάι.','Ο αυχένας να πέφτει προς τα κάτω.'],
+  ['Για πιο εύκολη εκτέλεση, κάνε την άσκηση στα γόνατα ή σε παγκάκι.','Κράτησε τους αγκώνες περίπου 30–45° από τον κορμό.']);
+ if(n.includes('κωπηλα')) return guide(
+  ['Λύγισε ελαφρά τα γόνατα, στείλε τη λεκάνη πίσω και κράτησε την πλάτη ουδέτερη.','Τράβηξε το βάρος προς τα πλευρά, οδηγώντας τον αγκώνα πίσω.','Κατέβασε αργά το βάρος μέχρι να τεντώσει το χέρι.'],
+  ['Πλάτη','Πλατύς ραχιαίος','Οπίσθιοι ώμοι','Δικέφαλοι'],
+  'Εκπνοή όταν τραβάς το βάρος και εισπνοή όταν το κατεβάζεις.',
+  ['Στρογγυλή μέση.','Απότομο τράβηγμα με φόρα.','Ο ώμος να ανεβαίνει προς το αυτί.'],
+  ['Σκέψου ότι φέρνεις τον αγκώνα προς την τσέπη σου.','Κράτησε τον αυχένα στην προέκταση της σπονδυλικής στήλης.']);
+ if(n.includes('άρσεις θανάτου')) return guide(
+  ['Στάσου με τα βάρη μπροστά στους μηρούς και τα γόνατα ελαφρά λυγισμένα.','Στείλε τη λεκάνη πίσω και κατέβασε τα βάρη κοντά στα πόδια, κρατώντας την πλάτη ουδέτερη.','Σφίξε τους γλουτούς και φέρε τη λεκάνη μπροστά για να επιστρέψεις όρθιος.'],
+  ['Οπίσθιοι μηριαίοι','Γλουτοί','Ραχιαίοι','Κορμός'],
+  'Εισπνοή στο κατέβασμα και εκπνοή στην άνοδο.',
+  ['Η κίνηση να γίνεται σαν κάθισμα αντί για κίνηση ισχίου.','Τα βάρη να απομακρύνονται από τα πόδια.','Η μέση να στρογγυλεύει.'],
+  ['Κράτησε τα βάρη κοντά στο σώμα.','Σταμάτα όταν αισθανθείς δυνατό τέντωμα πίσω από τους μηρούς χωρίς να χάνεται η θέση της πλάτης.']);
+ if(n.includes('πιέσεις στήθους')) return guide(
+  ['Ξάπλωσε σταθερά και κράτησε τα βάρη δίπλα στο στήθος με τους καρπούς ίσιους.','Πίεσε τα βάρη προς τα πάνω μέχρι να τεντώσουν σχεδόν οι αγκώνες.','Κατέβασέ τα αργά μέχρι οι αγκώνες να βρεθούν λίγο χαμηλότερα από το στήθος.'],
+  ['Στήθος','Τρικέφαλοι','Πρόσθιοι ώμοι'],
+  'Εκπνοή στην πίεση και εισπνοή στο κατέβασμα.',
+  ['Οι καρποί να λυγίζουν πίσω.','Τα βάρη να χτυπούν μεταξύ τους.','Οι αγκώνες να ανοίγουν τελείως στο πλάι.'],
+  ['Κράτησε τις ωμοπλάτες πίσω και κάτω.','Πίεσε τα πέλματα στο έδαφος για σταθερότητα.']);
+ if(n.includes('πιέσεις ώμων')||n.includes('πίεση ώμων')) return guide(
+  ['Κράτησε τα βάρη στο ύψος των ώμων με τους καρπούς πάνω από τους αγκώνες.','Πίεσε τα βάρη προς τα πάνω χωρίς να λυγίζει η μέση.','Κατέβασέ τα αργά στο ύψος των ώμων.'],
+  ['Ώμοι','Τρικέφαλοι','Άνω θωρακικοί','Κορμός'],
+  'Εκπνοή στην πίεση προς τα πάνω και εισπνοή στο κατέβασμα.',
+  ['Υπερέκταση της μέσης.','Οι αγκώνες να πέφτουν πολύ πίσω.','Απότομο κλείδωμα των αγκώνων.'],
+  ['Σφίξε κοιλιά και γλουτούς.','Κράτησε τα πλευρά χαμηλά.']);
+ if(n.includes('πλάγιες άρσεις')) return guide(
+  ['Στάσου όρθιος με τα βάρη δίπλα στους μηρούς και τους αγκώνες ελαφρά λυγισμένους.','Σήκωσε τα χέρια στο πλάι μέχρι περίπου το ύψος των ώμων.','Κατέβασέ τα αργά χωρίς να αφήσεις τα βάρη να πέσουν.'],
+  ['Πλάγιοι δελτοειδείς','Άνω τραπεζοειδείς'],
+  'Εκπνοή στην άνοδο και εισπνοή στο κατέβασμα.',
+  ['Πολύ βαρύ φορτίο και κίνηση με φόρα.','Οι ώμοι να σηκώνονται προς τα αυτιά.','Τα χέρια να ανεβαίνουν πολύ ψηλότερα από τους ώμους.'],
+  ['Χρησιμοποίησε μικρό βάρος.','Οδήγησε την κίνηση με τους αγκώνες.']);
+ if(n.includes('δικεφάλ')) return guide(
+  ['Κράτησε τους αγκώνες κοντά στα πλευρά και τους καρπούς ουδέτερους.','Λύγισε τους αγκώνες και φέρε τα βάρη προς τους ώμους.','Κατέβασε αργά μέχρι σχεδόν πλήρη έκταση.'],
+  ['Δικέφαλοι','Βραχιόνιος','Πήχεις'],
+  'Εκπνοή στην κάμψη και εισπνοή στο κατέβασμα.',
+  ['Οι αγκώνες να κινούνται μπροστά.','Κούνημα του κορμού για φόρα.','Απότομο κατέβασμα.'],
+  ['Κράτησε τους ώμους χαμηλά.','Δούλεψε σε πλήρες και ελεγχόμενο εύρος.']);
+ if(n.includes('τρικεφάλ')||n.includes('βυθίσεις')) return guide(
+  ['Κράτησε τον κορμό σταθερό και τους αγκώνες στραμμένους προς τα εμπρός ή πίσω, ανάλογα με την άσκηση.','Λύγισε τους αγκώνες ελεγχόμενα.','Τέντωσε τους αγκώνες χωρίς απότομο κλείδωμα.'],
+  ['Τρικέφαλοι','Πρόσθιοι ώμοι','Στήθος'],
+  'Εισπνοή στην κάμψη και εκπνοή στην έκταση.',
+  ['Οι αγκώνες να ανοίγουν πολύ.','Οι ώμοι να ανεβαίνουν προς τα αυτιά.','Υπερβολικά βαθιά κάθοδος στις βυθίσεις.'],
+  ['Κράτησε τους αγκώνες κοντά στο σώμα.','Σταμάτα αν αισθανθείς πόνο στον ώμο.']);
+ if(n.includes('γέφυρ')||n.includes('άρσεις λεκάνης')) return guide(
+  ['Ξάπλωσε με τα γόνατα λυγισμένα και τα πέλματα σταθερά στο έδαφος.','Πίεσε τις φτέρνες και σήκωσε τη λεκάνη μέχρι κορμός και μηροί να σχηματίσουν ευθεία.','Σφίξε τους γλουτούς και κατέβασε αργά.'],
+  ['Γλουτοί','Οπίσθιοι μηριαίοι','Κορμός'],
+  'Εκπνοή στην άνοδο και εισπνοή στο κατέβασμα.',
+  ['Υπερέκταση της μέσης.','Πίεση από τις μύτες αντί από τις φτέρνες.','Τα γόνατα να ανοίγουν ή να κλείνουν.'],
+  ['Κράτησε τα πλευρά χαμηλά.','Σφίξε τους γλουτούς στην κορυφή για ένα δευτερόλεπτο.']);
+ if(n.includes('σανίδα')) return guide(
+  ['Στήριξε αγκώνες ή παλάμες κάτω από τους ώμους.','Τέντωσε τα πόδια και κράτησε κεφάλι, πλάτη και λεκάνη σε ευθεία.','Σφίξε κοιλιά και γλουτούς και κράτησε τη θέση.'],
+  ['Κοιλιακοί','Εγκάρσιος κοιλιακός','Ώμοι','Γλουτοί'],
+  'Ανάπνεε ήρεμα και σταθερά χωρίς να κρατάς την αναπνοή.',
+  ['Η μέση να βουλιάζει.','Η λεκάνη να σηκώνεται πολύ ψηλά.','Οι ώμοι να απομακρύνονται από τη στήριξη.'],
+  ['Κάνε μικρότερη διάρκεια με σωστή τεχνική αντί για περισσότερο χρόνο με χαλαρή μέση.']);
+ if(n.includes('ορειβά')) return guide(
+  ['Πάρε θέση σανίδας με τα χέρια κάτω από τους ώμους.','Φέρε εναλλάξ κάθε γόνατο προς το στήθος.','Κράτησε τον κορμό σταθερό και συνέχισε με ελεγχόμενο ρυθμό.'],
+  ['Κοιλιακοί','Καμπτήρες ισχίου','Ώμοι','Τετρακέφαλοι'],
+  'Ανάπνεε ρυθμικά σε όλη τη διάρκεια.',
+  ['Η λεκάνη να ανεβοκατεβαίνει έντονα.','Τα χέρια να βρίσκονται πολύ μπροστά.','Να χάνεται η ευθεία της μέσης.'],
+  ['Ξεκίνα αργά και αύξησε την ταχύτητα μόνο όταν κρατάς σωστή θέση.']);
+ if(n.includes('μονόζυγο')||n.includes('έλξεις')) return guide(
+  ['Πιάσε τη μπάρα σταθερά και άφησε το σώμα να κρέμεται με ενεργούς ώμους.','Τράβηξε το στήθος προς τη μπάρα, οδηγώντας τους αγκώνες προς τα κάτω.','Κατέβασε αργά μέχρι σχεδόν πλήρη έκταση των χεριών.'],
+  ['Πλατύς ραχιαίος','Δικέφαλοι','Άνω πλάτη','Κορμός'],
+  'Εκπνοή στο τράβηγμα και εισπνοή στο κατέβασμα.',
+  ['Κούνημα του σώματος.','Οι ώμοι να ανεβαίνουν στα αυτιά.','Απότομη πτώση στην επιστροφή.'],
+  ['Χρησιμοποίησε υποβοήθηση ή αρνητικές επαναλήψεις αν χρειάζεται.']);
+ if(n.includes('ανεβάσματα')) return guide(
+  ['Τοποθέτησε ολόκληρο το πέλμα πάνω στο σταθερό σκαλοπάτι ή παγκάκι.','Πίεσε από το επάνω πόδι και ανέβασε το σώμα χωρίς ώθηση από το κάτω πόδι.','Κατέβασε αργά και επανάλαβε.'],
+  ['Τετρακέφαλοι','Γλουτοί','Οπίσθιοι μηριαίοι','Γάμπες'],
+  'Εκπνοή στην άνοδο και εισπνοή στο κατέβασμα.',
+  ['Μόνο η μύτη του πέλματος πάνω στο σκαλοπάτι.','Σπρώξιμο με το κάτω πόδι.','Το γόνατο να κλείνει προς τα μέσα.'],
+  ['Χρησιμοποίησε σταθερή επιφάνεια.','Ξεκίνα με χαμηλό ύψος.']);
+ if(n.includes('γάμπ')) return guide(
+  ['Στάσου όρθιος με τα πέλματα παράλληλα και κράτησε ισορροπία.','Σήκωσε τις φτέρνες όσο πιο ψηλά ελέγχεις.','Κατέβασε αργά μέχρι να πατήσουν οι φτέρνες.'],
+  ['Γαστροκνήμιος','Υποκνημίδιος'],
+  'Εκπνοή στην άνοδο και εισπνοή στο κατέβασμα.',
+  ['Απότομες αναπηδήσεις.','Οι αστράγαλοι να γέρνουν προς τα μέσα ή έξω.'],
+  ['Κράτησε για ένα δευτερόλεπτο στην κορυφή.']);
+ return guide(
+  ['Διάβασε πρώτα την αρχική και την τελική θέση στην εικόνα.','Εκτέλεσε την κίνηση αργά, με τον κορμό σταθερό και χωρίς απότομες κινήσεις.','Σταμάτα αν αισθανθείς οξύ πόνο ή ενόχληση στις αρθρώσεις.'],
+  ['Κύρια μυϊκή ομάδα της άσκησης','Κορμός για σταθεροποίηση'],
+  'Μην κρατάς την αναπνοή. Εκπνέεις στο δύσκολο μέρος της κίνησης.',
+  ['Πολύ γρήγορη εκτέλεση.','Μεγαλύτερο βάρος από αυτό που μπορείς να ελέγξεις.','Λανθασμένη στάση της μέσης ή των αρθρώσεων.'],
+  ['Ξεκίνα με μικρό εύρος και αύξησέ το σταδιακά.','Προτίμησε σωστή τεχνική αντί για περισσότερες επαναλήψεις.']);
 }
-function countRecognizedClients(text){let count=0;for(const line of String(text||'').split(/\r?\n/))if(bestClientInLine(line))count++;return count}
-function parseNumberToken(v){return (v||'').replace(',', '.').match(/-?\d+(?:\.\d+)?(?:\s*m)?/i)?.[0]||''}
-function extractSequenceRows(text){const lines=(text||'').split(/\n+/).map(x=>upper(x).replace(/\s+/g,' ').trim()).filter(Boolean);const tanks=suggestions('tanks');const rows=[];for(let i=0;i<lines.length;i++){const line=lines[i];const tank=tanks.find(t=>line.includes(t))||(/(?:Δ|Ζ|Α)\s*\d+/i.exec(line)?.[0]||'').replace(/\s/g,'');if(!tank)continue;const chunk=[line,lines[i+1]||'',lines[i+2]||''].join(' ');const nums=[...chunk.matchAll(/-?\d+(?:[.,]\d+)?\s*m?/gi)].map(m=>m[0].replace(',','.'));rows.push([upper(tank),nums[0]||'',nums[1]||'',(/%?\s*(?:CL2|ΕΝΕΡΓ)/.test(chunk)?(nums[2]||''):''),(/NAOH|ΣΟΔΑ/.test(chunk)?(nums[3]||nums[2]||''):''),/ΟΛΟΚΛΗΡ|COMPLET/.test(chunk)?'ΝΑΙ':''])}return rows.slice(0,20)}
-function ocrResultScore(result,target){
- const text=result?.data?.text||'';let score=countRecognizedClients(text)*12;
- if(target==='weekly')score+=(text.match(/\b[0-3]?\d[\/\-.][01]?\d(?:[\/\-.]\d{2,4})?/g)||[]).length*4;
- else if(target==='sequence')score+=extractSequenceRows(text).length*15+(normalizeMatch(text).match(/ΔΕΞΑΜΕΝ|ΑΡΧΙΚ|ΤΕΛΙΚ|NAOH|CL2|ΟΛΟΚΛΗΡ/g)||[]).length*3;
- else score+=(normalizeMatch(text).match(/ΠΕΛΑΤ|PELATH/g)||[]).length*3;
- return score
-}
-async function recognizeBestPhoto(file,target,onProgress){
- const img=await loadImageBitmapFromFile(file),variants=[
-  {rotation:0,mode:'contrast',label:'βελτίωση εικόνας'},
-  {rotation:90,mode:'contrast',label:'περιστροφή 90°'},
-  {rotation:270,mode:'contrast',label:'περιστροφή 270°'},
-  {rotation:0,mode:'threshold',label:'έντονη αντίθεση'}
- ];
- let best=null,bestScore=-1;
- for(let i=0;i<variants.length;i++){
-  const v=variants[i],canvas=makeOcrCanvas(img,v.rotation,v.mode);
-  const r=await Tesseract.recognize(canvas,'ell+eng',{logger:m=>{if(m.progress)onProgress((i+m.progress)/variants.length,`${v.label}: ${m.status||'Ανάγνωση'}`)}},{tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});
-  const score=ocrResultScore(r,target);if(score>bestScore){best=r;bestScore=score}
-  if(score>=((target==='weekly'?10:7)*12))break;
- }
- return best
-}
-async function runOcr(file,target){
- ocrTarget=target||'weekly';ocrPending=[];
- const dlg=document.getElementById('ocrDialog'),bar=document.getElementById('ocrBar'),msg=document.getElementById('ocrMessage'),txt=document.getElementById('ocrText'),insert=document.getElementById('insertOcrLines');
- dlg.showModal();bar.style.width='0';txt.value='';insert.textContent=ocrTarget==='daily'?'Πέρασμα πελατών στη στήλη ΠΕΛΑΤΗΣ':(ocrTarget==='sequence'?'Πέρασμα στοιχείων στη Σειρά φορτώσεων':'Πέρασμα πελατών στις σωστές ημέρες');
- try{
-  const r=await recognizeBestPhoto(file,ocrTarget,(progress,status)=>{bar.style.width=Math.round(progress*100)+'%';msg.textContent=status+' '+Math.round(progress*100)+'%'});
-  if(ocrTarget==='daily'){
-   const found=extractDailyClients(r.data.text);ocrPending=found.map(name=>({name}));txt.value=found.join('\n');
-  }else if(ocrTarget==='sequence'){
-   const found=extractSequenceRows(r.data.text);ocrPending=found;txt.value=found.map(row=>row.join(' | ')).join('\n');
-  }else{
-   let found=extractWeeklyLayout(r.data);
-   if(!found.length)found=extractWeeklyClients(r.data.text).map(name=>({name,dayIndex:weekdayIndexFromDate(new Date())}));
-   ocrPending=found;const dayNames=['ΔΕΥΤΕΡΑ','ΤΡΙΤΗ','ΤΕΤΑΡΤΗ','ΠΕΜΠΤΗ','ΠΑΡΑΣΚΕΥΗ','ΣΑΒΒΑΤΟ','ΚΥΡΙΑΚΗ'];
-   txt.value=found.map(x=>`${dayNames[x.dayIndex]||''}: ${x.name}`).join('\n');
-  }
-  bar.style.width='100%';msg.textContent=ocrPending.length?(ocrTarget==='sequence'?`Βρέθηκαν ${ocrPending.length} γραμμές δεξαμενών. Έλεγξέ τες πριν το πέρασμα.`:`Βρέθηκαν ${ocrPending.length} πελάτες. Έλεγξέ τους πριν το πέρασμα.`):(ocrTarget==='sequence'?'Δεν αναγνωρίστηκαν γραμμές δεξαμενών. Δοκίμασε πιο κοντινή, ευθεία φωτογραφία.':'Δεν βρέθηκε πελάτης από τη λίστα. Δοκίμασε πιο κοντινή και ευθεία φωτογραφία.')
- }catch(e){msg.textContent='Αποτυχία: '+e.message}
-}
-function insertOcr(){
- if(ocrTarget==='sequence'){
-  const rows=ocrPending.length?ocrPending:document.getElementById('ocrText').value.split(/\n/).map(x=>x.split('|').map(y=>upper(y.trim()))).filter(x=>x[0]);
-  const k=seqKey();state.sequence[k]=rows.map(r=>Array.from({length:6},(_,i)=>r[i]||''));while(state.sequence[k].length<12)state.sequence[k].push(Array(6).fill(''));renderSequence();
- }else if(ocrTarget==='daily'){
-  const lines=(ocrPending.length?ocrPending.map(x=>x.name):document.getElementById('ocrText').value.split(/\n/).map(x=>upper(x.trim())).filter(Boolean));
-  const inputs=[...document.querySelectorAll('#daily .ocr-client-input')].filter(x=>x.offsetParent!==null);let start=0;if(selectedInputs[0]&&inputs.includes(selectedInputs[0]))start=inputs.indexOf(selectedInputs[0]);let cursor=Math.max(0,start);
-  for(const name of lines){while(cursor<inputs.length&&inputs[cursor].value.trim())cursor++;if(cursor>=inputs.length)break;inputs[cursor].value=name;inputs[cursor].dispatchEvent(new Event('input',{bubbles:true}));cursor++}
- }else{
-  const entries=ocrPending.length?ocrPending:document.getElementById('ocrText').value.split(/\n/).map(x=>({name:upper(x.replace(/^.*?:\s*/,'')),dayIndex:weekdayIndexFromDate(new Date())})).filter(x=>x.name);
-  const k=weekKey();state.weekly[k]=normalizeWeekly(state.weekly[k]);
-  const grouped=Array.from({length:7},()=>[]);for(const e of entries){if(e.name)grouped[Math.max(0,Math.min(6,Number(e.dayIndex)||0))].push(e.name)}
-  for(let day=0;day<7;day++)for(const name of grouped[day]){let placed=false;for(const section of ['hypochlorite','hydrochloric','brine']){for(let r=0;r<state.weekly[k][section].length;r++){if(!state.weekly[k][section][r][day]){state.weekly[k][section][r][day]=name;addClientToList(name);placed=true;break}}if(placed)break}}
-  renderWeekly();
- }
- save();document.getElementById('ocrDialog').close()
-}
-async function copySelectedCell(){
- const input=selectedInputs[0];if(!input){alert('Πάτησε πρώτα σε ένα κελί.');return}
- try{await navigator.clipboard.writeText(input.value||'');setStatus('Αντιγράφηκε το κελί','online')}catch{input.focus();input.select();document.execCommand('copy');setStatus('Αντιγράφηκε το κελί','online')}
-}
-async function pasteSelectedCell(){
- const input=selectedInputs[0];if(!input){alert('Πάτησε πρώτα σε ένα κελί.');return}
- try{const text=await navigator.clipboard.readText();input.value=upper(text.replace(/\r?\n+/g,' ').trim());input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();setStatus('Έγινε επικόλληση','online')}
- catch{alert('Ο browser δεν επέτρεψε αυτόματη επικόλληση. Κράτησε πατημένο το κελί και επίλεξε «Επικόλληση».')}
-}
-function bindClipboardButtons(){document.querySelectorAll('[data-copy-cell]').forEach(b=>b.onclick=copySelectedCell);document.querySelectorAll('[data-paste-cell]').forEach(b=>b.onclick=pasteSelectedCell)}
-function bind(){bindTabs();bindClipboardButtons();
- fillConnectionSettings();
- const urlInput=document.getElementById('settingsSupabaseUrl'),keyInput=document.getElementById('settingsSupabaseKey');
- document.getElementById('toggleSupabaseKey').onclick=()=>{const hidden=keyInput.type==='password';keyInput.type=hidden?'text':'password';document.getElementById('toggleSupabaseKey').textContent=hidden?'Απόκρυψη':'Εμφάνιση'};
- document.getElementById('saveConnectionSettings').onclick=async()=>{storeConnectionSettings(urlInput.value,keyInput.value);setConnectionResult('Έλεγχος σύνδεσης…','testing');await initSharedSync(true)};
- document.getElementById('testConnection').onclick=async()=>{storeConnectionSettings(urlInput.value,keyInput.value);setConnectionResult('Έλεγχος σύνδεσης…','testing');await initSharedSync(true)};
- document.getElementById('resetConnectionSettings').onclick=async()=>{storeConnectionSettings(DEFAULT_SUPABASE_URL,DEFAULT_SUPABASE_PUBLISHABLE_KEY);fillConnectionSettings();setConnectionResult('Έγινε επαναφορά. Έλεγχος σύνδεσης…','testing');await initSharedSync(true)};
- document.getElementById('toggleWeekFit').onclick=()=>{const t=document.getElementById('weeklyTable');t.classList.toggle('fit-week');document.getElementById('toggleWeekFit').textContent=t.classList.contains('fit-week')?'↔ Κανονική προβολή':'↔ Όλη η εβδομάδα';localStorage.setItem('loadingPlanner.fitWeek',t.classList.contains('fit-week')?'1':'0')};
- document.getElementById('weekStart').onchange=e=>{
-  const oldKey=weekKey();
-  const currentWeekly=normalizeWeekly(state.weekly[oldKey]);
-  const currentDone=normalizeDone(state.weeklyDone[oldKey]);
-  const newKey=e.target.value||mondayOfToday();
-  // Η αλλαγή ημερομηνιών αλλάζει μόνο τις επικεφαλίδες.
-  // Τα δεδομένα που φαίνονται παραμένουν ακριβώς ίδια.
-  state.weekly[newKey]=JSON.parse(JSON.stringify(currentWeekly));
-  state.weeklyDone[newKey]=JSON.parse(JSON.stringify(currentDone));
-  state.weekStart=newKey;
-  renderWeekly();save()
-};document.getElementById('dailyDate').onchange=e=>{state.dailyDate=e.target.value;renderDaily();save()};
- document.getElementById('weeklyCameraBtn').onclick=()=>document.getElementById('weeklyCamera').click();
- document.getElementById('weeklyGalleryBtn').onclick=()=>document.getElementById('weeklyGallery').click();
- document.getElementById('dailyCameraBtn').onclick=()=>document.getElementById('dailyCamera').click();
- document.getElementById('dailyGalleryBtn').onclick=()=>document.getElementById('dailyGallery').click();
- const bindPhotoInput=(id,target)=>{document.getElementById(id).onchange=e=>{const file=e.target.files&&e.target.files[0];if(file)runOcr(file,target);e.target.value=''}};
- bindPhotoInput('weeklyCamera','weekly');bindPhotoInput('weeklyGallery','weekly');bindPhotoInput('dailyCamera','daily');bindPhotoInput('dailyGallery','daily');
- document.getElementById('insertOcrLines').onclick=insertOcr;document.getElementById('copyOcr').onclick=()=>navigator.clipboard.writeText(document.getElementById('ocrText').value);
- document.getElementById('addDailyRow').onclick=()=>{state.daily[dayKey()].push(Array(7).fill(''));renderDaily();save()};
- document.getElementById('addSalesOrderRow').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder);state.salesOrder.push({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false});renderSalesOrder();save()};
- document.getElementById('resetSalesOrderDone').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder).map(r=>({...r,manualDone:false}));renderSalesOrder();save()};
- document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};document.getElementById('clearDaily').onclick=()=>{if(confirm('Να καθαριστεί το καθημερινό;')){state.daily[dayKey()]=blankDaily();renderDaily();save()}};
- document.getElementById('clearSalesOrder').onclick=()=>{if(confirm('Να καθαριστεί η σειρά πώλησης δεξαμενών;')){state.salesOrder=Array.from({length:8},()=>({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false}));renderSalesOrder();save()}};
- document.getElementById('workProgramDate').onchange=e=>{state.workProgramDate=e.target.value||iso(new Date());renderWorkProgram();save()};
- document.getElementById('workProgramShift').onchange=e=>{const p=ensureWorkProgram();p.shift=e.target.value;renderWorkProgram();save()};
- document.getElementById('addLoadingTask').onclick=()=>{ensureWorkProgram().loadingRows.push({company:'',tanker:'',tank:'',done:false});renderWorkProgram();save()};
- document.getElementById('addManualTask').onclick=()=>{ensureWorkProgram().manualTasks.push({text:'',done:false});renderWorkProgram();save()};
- document.getElementById('clearWorkProgram').onclick=()=>{if(confirm('Να καθαριστεί το πρόγραμμα εργασιών της ημέρας;')){state.workPrograms[workProgramKey()]=blankWorkProgram();renderWorkProgram();save()}};
- document.getElementById('saveLists').onclick=()=>saveLists(true);for(const k of ['clients','tanks','carriers','other'])document.getElementById(k+'List').addEventListener('input',e=>{const p=e.target.selectionStart;e.target.value=upper(e.target.value);try{e.target.setSelectionRange(p,p)}catch{}autoLists()});
- document.getElementById('exportData').onclick=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='programma-fortoseon-backup.json';a.click();URL.revokeObjectURL(a.href)};document.getElementById('importData').onchange=async e=>{try{state=JSON.parse(await e.target.files[0].text());save();location.reload()}catch{alert('Μη έγκυρο αρχείο.')}};document.getElementById('eraseAll').onclick=()=>{if(confirm('Οριστική διαγραφή όλων των δεδομένων;')){[KEY,...OLD_KEYS].forEach(k=>localStorage.removeItem(k));location.reload()}};
- window.addEventListener('pagehide',()=>saveLists(false));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLists(false)})
+function guideList(items){return `<ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`}
+function showExercise(name,fromModal=false){
+ const pair=exerciseImagePair(name),g=exerciseGuide(name);
+ openModal(`<h2>${esc(name)}</h2><div class="real-exercise-grid"><figure><figcaption>Αρχική θέση</figcaption><div class="real-exercise-image"><img src="${pair[0]}" alt="Αρχική θέση για ${esc(name)}"></div></figure><div class="exercise-arrow">→</div><figure><figcaption>Τελική θέση</figcaption><div class="real-exercise-image"><img src="${pair[1]}" alt="Τελική θέση για ${esc(name)}"></div></figure></div><div class="exercise-guide"><section><h3>▶ Εκτέλεση</h3>${guideList(g.steps)}</section><section><h3>💪 Μυϊκές ομάδες</h3>${guideList(g.muscles)}</section><section><h3>💨 Αναπνοή</h3><p>${esc(g.breathing)}</p></section><section><h3>⚠️ Συχνά λάθη</h3>${guideList(g.mistakes)}</section><section><h3>💡 Συμβουλές</h3>${guideList(g.tips)}</section></div><p class="exercise-credit">Εικονογράφηση: Everkinetic μέσω Wikimedia Commons — CC BY-SA 3.0.</p><div class="modal-actions"><button value="cancel" class="primary">Κλείσιμο</button></div>`);
+ const fallback=exerciseSvg(name);
+ $$('#modalContent .real-exercise-image img').forEach(img=>img.onerror=()=>{const box=img.parentElement;box.innerHTML=fallback;box.classList.add('fallback-svg')});
 }
 
+$('#themeBtn').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save()};
+$('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='fitplanner-backup-'+todayISO()+'.json';a.click();URL.revokeObjectURL(a.href)};
+$('#importInput').onchange=async e=>{try{const data=JSON.parse(await e.target.files[0].text());if(!data.people?.length)throw 0;state=data;save();toast('Το backup εισήχθη')}catch{alert('Το αρχείο backup δεν είναι έγκυρο')}};
+function openModal(html){$('#modalContent').innerHTML=html;$('#modal').showModal()}
+function closeModal(){$('#modal').close()}
+function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
-// v2.9: ημερήσιο σύνολο βυτίων δίπλα σε κάθε ημέρα του εβδομαδιαίου.
-// Δεν αλλάζουμε πλέον CSS κλάσεις κατά τη διάρκεια του zoom, γιατί το Safari
-// στέλνει συνεχόμενα visualViewport resize/scroll events και δημιουργούσε βρόχο
-// επανασχεδίασης (τρεμόπαιγμα και κόλλημα). Η προβολή παραμένει σταθερή και
-// η πλήρης εβδομάδα ενεργοποιείται μόνο από το κουμπί «Όλη η εβδομάδα».
-function syncVisualViewportLayout(){
- document.body.classList.remove('visual-zoom-out','zoom-overview','zoom-detail');
- const table=document.getElementById('weeklyTable');
- if(table)table.classList.remove('auto-fit-week');
-}
-function bindVisualViewportLayout(){
- syncVisualViewportLayout();
- // Μόνο αλλαγή προσανατολισμού/κανονικό resize, όχι visualViewport pinch events.
- let resizeTimer=0;
- window.addEventListener('resize',()=>{
-  clearTimeout(resizeTimer);
-  resizeTimer=setTimeout(syncVisualViewportLayout,180);
- },{passive:true});
- window.addEventListener('orientationchange',()=>{
-  clearTimeout(resizeTimer);
-  resizeTimer=setTimeout(syncVisualViewportLayout,300);
- },{passive:true});
-}
-state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSalesOrder();renderWorkProgram();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
-// Αφαιρεί παλιό service worker/cache ώστε το GitHub Pages να φορτώνει πάντα τη νεότερη έκδοση.
-if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
-if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}if('caches' in window){caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))).catch(()=>{});}
+renderAll();renderCalendar();
