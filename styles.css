@@ -439,3 +439,23 @@ body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;o
 .analysis-slot.analysis-slot-complete{border-color:#2f9651;box-shadow:0 0 0 2px rgba(47,150,81,.15)}
 .analysis-slot.analysis-slot-complete .analysis-slot-head{background:#23743d}
 .analysis-progress{font-size:13px;font-weight:900;white-space:nowrap}
+
+
+/* v3.5 — καθαρή εμφάνιση φορτώσεων σε κινητό και επιλογή δεξαμενής */
+.loading-task{grid-template-columns:36px minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr) 42px;align-items:end}
+.loading-field{display:flex;min-width:0;flex-direction:column;gap:4px;font-size:11px;font-weight:900;color:#53677b}
+.loading-field>span{padding-left:2px}
+.loading-field .autocomplete-wrap,.loading-field>input{width:100%;min-width:0}
+.loading-field>input{min-height:46px;border:1px solid #aeb9c4;border-radius:8px;padding:8px 10px;font:inherit;font-size:17px;background:#fff;color:#18232d}
+.loading-field .cell-input{font-size:17px;color:#18232d;opacity:1;-webkit-text-fill-color:#18232d}
+.loading-field textarea.cell-input{min-height:48px;height:auto;overflow:visible;white-space:normal;word-break:break-word}
+@media(max-width:700px){
+ .loading-task{grid-template-columns:34px minmax(0,1fr) 42px;align-items:start}
+ .loading-task>input[type=checkbox]{grid-column:1;grid-row:1;margin-top:22px}
+ .loading-company-field,.loading-tanker-field,.loading-tank-field{grid-column:2/4;width:100%}
+ .loading-company-field{grid-row:1}.loading-tanker-field{grid-row:2}.loading-tank-field{grid-row:3}
+ .loading-task>.task-remove{grid-column:3;grid-row:4;justify-self:end}
+ .loading-field .autocomplete-wrap{display:grid;grid-template-columns:minmax(0,1fr) 54px}
+ .loading-field .cell-input,.loading-field>input{font-size:18px;min-height:52px}
+ .loading-field textarea.cell-input{min-height:54px}
+}
