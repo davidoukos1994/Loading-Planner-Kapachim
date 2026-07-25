@@ -1,6 +1,6 @@
 :root{
-  --bg:#f5f1f6; --panel:#ffffff; --purple:#6b087d; --purple2:#8a2399;
-  --text:#1c1b1f; --muted:#666; --line:#d8cedd; --water:#9a28aa; --input:#fff7a6;
+  --bg:#f3f6f9; --panel:#ffffff; --purple:#1f3b5b; --purple2:#2f5f89;
+  --text:#1c1b1f; --muted:#666; --line:#cbd7e2; --water:#2f6f9f; --input:#fff7a6;
   --green:#119447; --red:#d22; --blue:#0057d9;
 }
 *{box-sizing:border-box}
@@ -14,19 +14,19 @@ label{display:flex;flex-direction:column;font-size:13px;font-weight:700;gap:5px}
 input,select,button{font-size:16px;border:1px solid #aaa;border-radius:9px;padding:9px;background:white;color:var(--text);min-height:42px}
 input{background:var(--input)}
 button{background:var(--purple);color:white;border:0;font-weight:800} button.secondary{background:#ddd;color:#222}
-.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;background:#2b003f;color:white}
+.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;background:#1f3b5b;color:white}
 .summary div{border:1px solid #ffffff33;border-radius:10px;padding:10px;background:#ffffff10}.summary span{display:block;font-size:12px;color:#e7d8ef}.summary strong{display:block;margin-top:5px;font-size:17px}
-.legend{font-weight:700;color:#4a1855}
+.legend{font-weight:700;color:#1f3b5b}
 .tank-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
 .tank-card{background:white;border:2px solid var(--line);border-radius:14px;padding:10px;position:relative;overflow:hidden}
-.tank-card.active{border-color:var(--purple);box-shadow:0 0 0 3px #6b087d22}
+.tank-card.active{border-color:var(--purple);box-shadow:0 0 0 3px #1f3b5b22}
 .tank-title{display:flex;justify-content:space-between;align-items:center;background:var(--purple);color:white;margin:-10px -10px 10px;padding:8px 10px;font-weight:900}
 .tank-layout{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:start}
 .tank-visual{height:220px;border:4px solid #555;border-top:2px solid #888;border-radius:52px 52px 14px 14px;background:linear-gradient(90deg,#eee,#fff,#e9e9e9);position:relative;overflow:hidden;margin:auto;width:100px}
-.fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#b547c4,#751083);height:0%;transition:height .25s}.mark{position:absolute;left:0;right:0;border-top:1px solid #666;opacity:.4}.tank-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-weight:900;text-shadow:0 1px 0 #fff;font-size:14px}
+.fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#5a93bd,#1f5b88);height:0%;transition:height .25s}.mark{position:absolute;left:0;right:0;border-top:1px solid #666;opacity:.4}.tank-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-weight:900;text-shadow:0 1px 0 #fff;font-size:14px}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fields label{font-size:12px}.fields input{width:100%}.small-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.maxbtn{background:var(--green)}.emptybtn{background:#777}
 .results{grid-column:1/-1;background:#f7f7f7;border-radius:8px;padding:8px;font-size:13px;line-height:1.45}.results b{color:var(--purple)}
-.schedule-row{display:grid;grid-template-columns:70px 1fr 1fr 1fr;gap:8px;padding:8px;border-bottom:1px solid var(--line);align-items:center}.schedule-row:first-child{font-weight:900;background:#f5e8f8;border-radius:8px}.badge{background:var(--purple);color:white;border-radius:999px;padding:4px 8px;font-weight:900;text-align:center}
+.schedule-row{display:grid;grid-template-columns:70px 1fr 1fr 1fr;gap:8px;padding:8px;border-bottom:1px solid var(--line);align-items:center}.schedule-row:first-child{font-weight:900;background:#e8f0f7;border-radius:8px}.badge{background:var(--purple);color:white;border-radius:999px;padding:4px 8px;font-weight:900;text-align:center}
 @media(max-width:850px){.tank-grid{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.top-panel{grid-template-columns:1fr}.tank-layout{grid-template-columns:95px 1fr}.tank-visual{height:190px;width:88px}.schedule-row{grid-template-columns:55px 1fr;gap:5px}.schedule-row span:nth-child(3),.schedule-row span:nth-child(4){grid-column:2}.schedule-row:first-child{display:none}}
 
 .compact h2{margin:0 0 8px;font-size:16px;color:var(--purple)}
@@ -41,7 +41,7 @@ button{background:var(--purple);color:white;border:0;font-weight:800} button.sec
 @media(max-width:850px){.tankers-btns{grid-template-columns:repeat(2,1fr)}.breakdown .wide{grid-column:span 2}}
 
 /* v4.1: το πρόγραμμα γεμίσματος εμφανίζεται πρώτο */
-.schedule-panel-top{margin-top:0;border:2px solid rgba(123,44,191,.35)}
+.schedule-panel-top{margin-top:0;border:2px solid rgba(31,59,91,.28)}
 .schedule-panel-top h2{margin-top:0}
 
 /* v4.2: γρήγορος υπολογισμός δίπλα στο κανονικό πρόγραμμα */
@@ -77,4 +77,23 @@ button{background:var(--purple);color:white;border:0;font-weight:800} button.sec
   .quick-add{width:100%;margin-top:8px}
   .quick-row{grid-template-columns:1fr}
   .quick-remove{grid-column:1;justify-self:end}
+}
+
+
+/* v4.3: γρήγορος καθαρισμός, γενικά βυτία και ενιαίο μπλε χρώμα */
+.quick-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.quick-clear{background:#d9534f;white-space:nowrap;padding:7px 10px;min-height:36px;font-size:13px}
+.global-tankers-box{grid-column:1/-1;border:1px solid #b9c9d8;background:#eef4f8;border-radius:10px;padding:10px;display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;align-items:end}
+.global-tankers-box input{background:#fff7a6}
+.global-tankers-box small{grid-column:1/-1;color:#4f6274;line-height:1.35}
+.global-tanker-buttons{display:grid;grid-template-columns:repeat(4,minmax(58px,1fr));gap:6px}
+.global-tanker-buttons button{min-height:42px;padding:7px}
+.quick-heading h2,.compact h2,.results b,.breakdown small{color:#1f3b5b}
+.quick-panel{border-color:#b9c9d8;background:#fbfdff}
+.quick-add{background:#1f3b5b}
+.quick-help{background:#eef4f8;border-color:#c6d5e2;color:#29465f}
+@media(max-width:650px){
+  .global-tankers-box{grid-template-columns:1fr}
+  .global-tanker-buttons{grid-template-columns:repeat(4,1fr)}
+  .quick-actions{justify-content:flex-start;margin-top:8px}
 }

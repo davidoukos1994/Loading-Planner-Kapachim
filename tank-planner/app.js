@@ -12,7 +12,7 @@ const defaultTanks = [
 ];
 const STORAGE_KEY = 'hypo-v8-tankers-targets';
 const OLD_KEYS = ['hypo-v6-total-fixed'];
-let state = load() || {production:'6824', startTime:toLocalInput(new Date()), tanks:structuredClone(defaultTanks)};
+let state = load() || {production:'6824', startTime:toLocalInput(new Date()), globalTankers:0, tanks:structuredClone(defaultTanks)};
 state = normalizeState(state);
 
 
@@ -54,7 +54,7 @@ function renderQuick(){
         <input class="quick-level" data-quick-i="${i}" data-quick-k="level" type="text" inputmode="decimal" value="${row.level}" placeholder="${t?.m ?? 0}">
       </label>
       <label>Σειρές
-        <input data-quick-i="${i}" data-quick-k="orders" type="text" inputmode="numeric" value="${row.orders}" placeholder="π.χ. 1-3">
+        <input data-quick-i="${i}" data-quick-k="orders" type="text" inputmode="text" autocapitalize="off" spellcheck="false" value="${row.orders}" placeholder="π.χ. 1,3">
       </label>
       <button class="quick-remove" data-quick-remove="${i}" type="button" title="Αφαίρεση">×</button>
     </div>`;
@@ -131,7 +131,7 @@ function load(){
   return null;
 }
 function normalizeState(s){
-  const base = {production:'6824', startTime:toLocalInput(new Date()), tanks:structuredClone(defaultTanks), ...s};
+  const base = {production:'6824', startTime:toLocalInput(new Date()), globalTankers:0, tanks:structuredClone(defaultTanks), ...s};
   const defaultsById = Object.fromEntries(defaultTanks.map(t=>[t.id, t]));
   const savedById = Object.fromEntries((base.tanks || []).filter(t=>t && t.id).map(t=>[t.id, t]));
 
@@ -230,6 +230,7 @@ function tankCalc(t){
 function render(){
   qs('production').value = state.production ?? '';
   qs('startTime').value = state.startTime;
+  qs('globalTankers').value = state.globalTankers ?? 0;
   renderQuick();
   const root = qs('tanks'); root.innerHTML='';
   state.tanks.forEach((t,i)=>{
@@ -304,7 +305,11 @@ function updateSchedule(){
   const totalPhysical = calcs.reduce((s,t)=>s+t.calc.curT,0);
   qs('totalNow').textContent = `${fmt(totalPhysical,2)} tn`;
   const bd = qs('totalBreakdown');
-  if (bd) bd.innerHTML = calcs.map(t=>`<div><span>${t.id}</span>${fmt(t.calc.curT,2)} tn${t.calc.tankerCount ? `<small>+${t.calc.tankerCount} βυτ. στο πρόγραμμα</small>` : ''}</div>`).join('');
+  if (bd) {
+    const globalCount = Math.max(0, Math.floor(num(state.globalTankers)));
+    bd.innerHTML = calcs.map(t=>`<div><span>${t.id}</span>${fmt(t.calc.curT,2)} tn${t.calc.tankerCount ? `<small>+${t.calc.tankerCount} βυτ. στο πρόγραμμα</small>` : ''}</div>`).join('') +
+      (globalCount ? `<div class="wide"><span>Γενικά βυτία</span>${globalCount} × ${fmt(TANKER_TONS,1)} = ${fmt(globalCount*TANKER_TONS,2)} tn<small>Χωρίς σύνδεση με συγκεκριμένη δεξαμενή</small></div>` : '');
+  }
   const rawPlanEntries = calcs.flatMap(t=>fillPlans(t).map(plan=>({
     ...t,
     plan,
@@ -317,7 +322,9 @@ function updateSchedule(){
     return {...entry, occurrence: seenByTank[entry.id], isRepeat: seenByTank[entry.id] > 1};
   });
   let elapsed=0; let rows=[];
-  for(const entry of planEntries){
+  const globalTankerCount = Math.max(0, Math.floor(num(state.globalTankers)));
+  const globalTankerTons = globalTankerCount * TANKER_TONS;
+  for(const [entryIndex, entry] of planEntries.entries()){
     // Στην πρώτη προγραμματισμένη πλήρωση χρησιμοποιείται η δηλωμένη/υπολογιστική στάθμη.
     // Στη δεύτερη πλήρωση της ίδιας δεξαμενής θεωρούμε ότι έχει αδειάσει και ξαναξεκινάει από 0.
     const levelT = entry.isRepeat ? 0 : entry.calc.curT;
@@ -328,7 +335,10 @@ function updateSchedule(){
     // Στο πρόγραμμα μετράνε σαν ταυτόχρονη έξοδος κατά τη διάρκεια της πλήρωσης:
     // παραγωγή που χρειάζεται = ποσότητα μέχρι στόχο + ποσότητα βυτίων.
     const tankerExtra = entry.isRepeat ? 0 : entry.calc.tankerT;
-    const miss = fillMiss + tankerExtra;
+    // Τα γενικά βυτία δεν συνδέονται με δεξαμενή. Για να επηρεάζουν όλους τους χρόνους,
+    // η συνολική τους ποσότητα προστίθεται μία φορά στην πρώτη ενεργή φάση του προγράμματος.
+    const globalExtra = entryIndex === 0 ? globalTankerTons : 0;
+    const miss = fillMiss + tankerExtra + globalExtra;
     const h = prod>0 ? miss/(prod/1000) : 0;
     if(miss > 0.0001){
       elapsed += h;
@@ -338,6 +348,8 @@ function updateSchedule(){
         startM, isRepeat:entry.isRepeat, occurrence:entry.occurrence, fillNo: entry.plan.fillNo,
         tankerCount: entry.isRepeat ? 0 : entry.calc.tankerCount,
         tankerT: entry.isRepeat ? 0 : entry.calc.tankerT,
+        globalTankerCount: entryIndex === 0 ? globalTankerCount : 0,
+        globalTankerTons: globalExtra,
         fillMiss
       });
     }
@@ -349,11 +361,17 @@ function updateSchedule(){
       const tankerText = r.tankerCount
         ? `<b>Πλήρωση με ταυτόχρονη έξοδο ${r.tankerCount} βυτίων = ${fmt(r.tankerT,2)} tn.</b> `
         : '';
-      const fillText = `από ${fmt(r.startM,2)}m μέχρι ${fmt(r.targetM,2)}m`;
-      const detailText = r.tankerCount
-        ? `<small>Δεν σταματάει το γέμισμα: στόχος δεξαμενής ${fmt(r.fillMiss,2)} tn + βυτία που φεύγουν ${fmt(r.tankerT,2)} tn = ${fmt(r.miss,2)} tn παραγωγή συνολικά.</small>`
+      const globalText = r.globalTankerCount
+        ? `<b>Γενική έξοδος ${r.globalTankerCount} βυτίων = ${fmt(r.globalTankerTons,2)} tn.</b> `
         : '';
-      return `<div class="schedule-row"><span class="badge">${r.order}</span><span>${r.id} ${r.fillNo ? r.fillNo+'η πλήρωση: ' : ''}${tankerText}${fillText}${r.isRepeat ? ' <small>(ξανά από 0)</small>' : ''} — ${dur(r.h)}${detailText}</span><span>${fmt(r.miss,2)} tn</span><span>${dateFmt(r.end)}</span></div>`;
+      const fillText = `από ${fmt(r.startM,2)}m μέχρι ${fmt(r.targetM,2)}m`;
+      const details=[];
+      if(r.tankerCount) details.push(`βυτία συγκεκριμένης δεξαμενής ${fmt(r.tankerT,2)} tn`);
+      if(r.globalTankerCount) details.push(`γενικά βυτία ${fmt(r.globalTankerTons,2)} tn`);
+      const detailText = details.length
+        ? `<small>Δεν σταματάει το γέμισμα: στόχος δεξαμενής ${fmt(r.fillMiss,2)} tn + ${details.join(' + ')} = ${fmt(r.miss,2)} tn παραγωγή συνολικά.</small>`
+        : '';
+      return `<div class="schedule-row"><span class="badge">${r.order}</span><span>${r.id} ${r.fillNo ? r.fillNo+'η πλήρωση: ' : ''}${globalText}${tankerText}${fillText}${r.isRepeat ? ' <small>(ξανά από 0)</small>' : ''} — ${dur(r.h)}${detailText}</span><span>${fmt(r.miss,2)} tn</span><span>${dateFmt(r.end)}</span></div>`;
     }).join('') : '<p>Βάλε 1η σειρά/στόχο και, αν χρειάζεται, 2η σειρά/στόχο. Παράδειγμα D1: 1η σειρά 1 στόχος 2,0m και 2η σειρά 5 στόχος 6,2m.</p>');
   calculateQuick();
   save();
@@ -361,14 +379,30 @@ function updateSchedule(){
 
 qs('production').addEventListener('input', e=>{ state.production=e.target.value; updateSchedule(); });
 qs('startTime').addEventListener('input', updateSchedule);
+qs('globalTankers').addEventListener('input', e=>{ state.globalTankers=e.target.value; save(); updateSchedule(); });
 qs('nowBtn').onclick=()=>{state.startTime=toLocalInput(new Date()); save(); render();};
 qs('saveBtn').onclick=()=>{save(); alert('Αποθηκεύτηκε στη συσκευή.');};
-qs('resetBtn').onclick=()=>{ if(confirm('Να γίνει reset στα αρχικά δεδομένα;')){localStorage.removeItem(STORAGE_KEY); OLD_KEYS.forEach(k=>localStorage.removeItem(k)); state={production:'6824',startTime:toLocalInput(new Date()),tanks:structuredClone(defaultTanks)}; render(); }};
+qs('resetBtn').onclick=()=>{ if(confirm('Να γίνει reset στα αρχικά δεδομένα;')){localStorage.removeItem(STORAGE_KEY); OLD_KEYS.forEach(k=>localStorage.removeItem(k)); state={production:'6824',startTime:toLocalInput(new Date()),globalTankers:0,tanks:structuredClone(defaultTanks)}; render(); }};
 qs('quickAddBtn').onclick=()=>{
   const id=displayOrder.find(id=>!quickState.rows.some(r=>r.tankId===id)) || 'Z1';
   quickState.rows.push({tankId:id,level:String(tankById(id)?.m ?? 0),orders:''});
   saveQuickState(); renderQuick();
 };
 qs('quickCalcBtn').onclick=()=>{ saveQuickState(); calculateQuick(); };
+qs('quickClearBtn').onclick=()=>{
+  if(confirm('Να καθαριστούν οι γραμμές και τα αποτελέσματα του γρήγορου υπολογισμού;')){
+    quickState={rows:[{tankId:'Z1',level:'',orders:''}]};
+    saveQuickState(); renderQuick();
+    qs('quickResults').innerHTML='<div class="quick-empty">Ο γρήγορος υπολογισμός καθαρίστηκε.</div>';
+  }
+};
+function changeGlobalTankers(step){
+  state.globalTankers=Math.max(0,Math.floor(num(state.globalTankers)+step));
+  save(); render();
+}
+qs('globalTankerPlus1').onclick=()=>changeGlobalTankers(1);
+qs('globalTankerPlus2').onclick=()=>changeGlobalTankers(2);
+qs('globalTankerMinus1').onclick=()=>changeGlobalTankers(-1);
+qs('globalTankerClear').onclick=()=>{state.globalTankers=0;save();render();};
 
 render();

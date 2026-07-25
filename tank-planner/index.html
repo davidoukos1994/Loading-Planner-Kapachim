@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#2b003f" />
+  <meta name="theme-color" content="#1f3b5b" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="NaOCl Tanks" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=4.2.0" />
+  <link rel="stylesheet" href="style.css?v=4.3.0" />
   <title>Πρόγραμμα Δεξαμενών Υποχλωριώδους Νατρίου</title>
 </head>
 <body>
@@ -27,7 +27,10 @@
             <h2>⚡ Γρήγορος υπολογισμός</h2>
             <p>Προσωρινή προσομοίωση χωρίς αλλαγή στο κύριο πρόγραμμα.</p>
           </div>
-          <button id="quickAddBtn" class="quick-add" type="button">+ Δεξαμενή</button>
+          <div class="quick-actions">
+            <button id="quickAddBtn" class="quick-add" type="button">+ Δεξαμενή</button>
+            <button id="quickClearBtn" class="quick-clear" type="button">Καθαρισμός</button>
+          </div>
         </div>
         <div class="quick-help">Στις σειρές γράψε π.χ. <b>1-3</b> για Z1 και <b>2</b> για Z2. Το Z1 θα υπολογιστεί πρώτη και ξανά τρίτη.</div>
         <div id="quickRows" class="quick-rows"></div>
@@ -51,6 +54,18 @@
       <button id="nowBtn" type="button">Τώρα</button>
       <button id="saveBtn" type="button">Αποθήκευση βάρδιας</button>
       <button id="resetBtn" type="button">Reset</button>
+      <div class="global-tankers-box">
+        <label>Γενικά βυτία (ανεξάρτητα από δεξαμενή)
+          <input id="globalTankers" type="text" inputmode="numeric" placeholder="π.χ. 4" />
+        </label>
+        <div class="global-tanker-buttons">
+          <button id="globalTankerPlus1" type="button">+1</button>
+          <button id="globalTankerPlus2" type="button">+2</button>
+          <button id="globalTankerMinus1" class="secondary" type="button">-1</button>
+          <button id="globalTankerClear" class="secondary" type="button">Μηδέν</button>
+        </div>
+        <small>Υπολογίζονται ως συνολική έξοδος βυτίων, χωρίς να δηλώνεις από ποια δεξαμενή θα παρθεί το υλικό.</small>
+      </div>
     </section>
 
     <section class="summary two">
@@ -71,6 +86,6 @@
 
   </main>
 
-  <script src="app.js?v=4.2.0"></script>
+  <script src="app.js?v=4.3.0"></script>
 </body>
 </html>

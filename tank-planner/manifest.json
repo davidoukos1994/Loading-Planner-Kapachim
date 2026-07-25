@@ -6,7 +6,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f5f1f6",
-  "theme_color": "#2b003f",
+  "theme_color": "#1f3b5b",
   "description": "Υπολογισμός γεμίσματος δεξαμενών NaOCl",
   "icons": [
     {
