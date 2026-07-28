@@ -53,10 +53,10 @@ button{background:var(--purple);color:white;border:0;font-weight:800} button.sec
 .quick-add{background:#173b5f;white-space:nowrap;padding:7px 10px;min-height:36px;font-size:13px}
 .quick-help{background:#edf6ff;border:1px solid #c9dff3;border-radius:8px;padding:8px;font-size:12px;line-height:1.4;color:#29465f;margin-bottom:9px}
 .quick-rows{display:grid;gap:8px}
-.quick-row{display:grid;grid-template-columns:1fr .86fr .86fr 38px;gap:6px;align-items:end;padding:8px;border:1px solid #d6e2ec;border-radius:10px;background:#fff}
+.quick-row{display:grid;grid-template-columns:1fr .82fr .82fr .82fr 38px;gap:6px;align-items:end;padding:8px;border:1px solid #d6e2ec;border-radius:10px;background:#fff}
 .quick-row label{font-size:11px}
 .quick-row input,.quick-row select{min-width:0;width:100%;font-size:14px;padding:7px;min-height:38px;background:#fff}
-.quick-row .quick-level{background:#fff7a6}
+.quick-row .quick-level,.quick-row .quick-target{background:#fff7a6}
 .quick-remove{background:#fff;color:#d22;border:1px solid #efb8b8;padding:4px;min-height:38px;font-size:17px}
 .quick-calc{width:100%;margin-top:9px;background:#119447}
 .quick-results{margin-top:9px;display:grid;gap:6px}
@@ -97,3 +97,6 @@ button{background:var(--purple);color:white;border:0;font-weight:800} button.sec
   .global-tanker-buttons{grid-template-columns:repeat(4,1fr)}
   .quick-actions{justify-content:flex-start;margin-top:8px}
 }
+
+/* v4.4: στόχος δεξαμενής στον γρήγορο υπολογισμό */
+.quick-row .quick-target{font-weight:700}

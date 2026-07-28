@@ -25,8 +25,8 @@ function loadQuickState(){
     if(saved && Array.isArray(saved.rows)) return saved;
   }catch(e){}
   return {rows:[
-    {tankId:'Z1', level:'', orders:'1-3'},
-    {tankId:'Z2', level:'', orders:'2'}
+    {tankId:'Z1', level:'', target:'', orders:'1-3'},
+    {tankId:'Z2', level:'', target:'', orders:'2'}
   ]};
 }
 function saveQuickState(){ localStorage.setItem(QUICK_STORAGE_KEY, JSON.stringify(quickState)); }
@@ -38,6 +38,7 @@ function ensureQuickLevels(){
   quickState.rows.forEach(row=>{
     const t=tankById(row.tankId);
     if(row.level==='' || row.level===null || row.level===undefined) row.level=String(t?.m ?? 0);
+    if(row.target==='' || row.target===null || row.target===undefined) row.target=String(t?.maxM ?? 0);
   });
 }
 function renderQuick(){
@@ -53,6 +54,9 @@ function renderQuick(){
       <label>Στάθμη (m)
         <input class="quick-level" data-quick-i="${i}" data-quick-k="level" type="text" inputmode="decimal" value="${row.level}" placeholder="${t?.m ?? 0}">
       </label>
+      <label>Στόχος (m)
+        <input class="quick-target" data-quick-i="${i}" data-quick-k="target" type="text" inputmode="decimal" value="${row.target ?? t?.maxM ?? ''}" placeholder="${t?.maxM ?? 0}">
+      </label>
       <label>Σειρές
         <input data-quick-i="${i}" data-quick-k="orders" type="text" inputmode="text" autocapitalize="off" spellcheck="false" value="${row.orders}" placeholder="π.χ. 1,3">
       </label>
@@ -62,13 +66,17 @@ function renderQuick(){
   root.querySelectorAll('[data-quick-i]').forEach(el=>el.addEventListener('input',e=>{
     const i=Number(e.target.dataset.quickI), k=e.target.dataset.quickK;
     quickState.rows[i][k]=e.target.value;
-    if(k==='tankId') quickState.rows[i].level=String(tankById(e.target.value)?.m ?? 0);
+    if(k==='tankId'){
+      const selected=tankById(e.target.value);
+      quickState.rows[i].level=String(selected?.m ?? 0);
+      quickState.rows[i].target=String(selected?.maxM ?? 0);
+    }
     saveQuickState();
     if(k==='tankId') renderQuick();
   }));
   root.querySelectorAll('[data-quick-remove]').forEach(btn=>btn.addEventListener('click',()=>{
     quickState.rows.splice(Number(btn.dataset.quickRemove),1);
-    if(!quickState.rows.length) quickState.rows.push({tankId:'Z1',level:String(tankById('Z1')?.m ?? 0),orders:'1'});
+    if(!quickState.rows.length) quickState.rows.push({tankId:'Z1',level:String(tankById('Z1')?.m ?? 0),target:String(tankById('Z1')?.maxM ?? 0),orders:'1'});
     saveQuickState(); renderQuick(); calculateQuick();
   }));
 }
@@ -91,7 +99,8 @@ function calculateQuick(){
     seen[e.t.id]=(seen[e.t.id]||0)+1;
     const occurrence=seen[e.t.id];
     const startM=occurrence===1 ? Math.max(0,num(e.row.level)) : 0;
-    const targetM=Math.max(0,num(e.t.maxM));
+    const requestedTarget=Math.max(0,num(e.row.target));
+    const targetM=Math.min(Math.max(0,num(e.t.maxM)), requestedTarget);
     const tons=Math.max(0,(targetM-startM)*num(e.t.tnm));
     const hours=tons/(prod/1000);
     elapsed+=hours;
@@ -382,16 +391,35 @@ qs('startTime').addEventListener('input', updateSchedule);
 qs('globalTankers').addEventListener('input', e=>{ state.globalTankers=e.target.value; save(); updateSchedule(); });
 qs('nowBtn').onclick=()=>{state.startTime=toLocalInput(new Date()); save(); render();};
 qs('saveBtn').onclick=()=>{save(); alert('Αποθηκεύτηκε στη συσκευή.');};
-qs('resetBtn').onclick=()=>{ if(confirm('Να γίνει reset στα αρχικά δεδομένα;')){localStorage.removeItem(STORAGE_KEY); OLD_KEYS.forEach(k=>localStorage.removeItem(k)); state={production:'6824',startTime:toLocalInput(new Date()),globalTankers:0,tanks:structuredClone(defaultTanks)}; render(); }};
+qs('resetBtn').onclick=()=>{
+  if(confirm('Να καθαριστούν οι σειρές, οι στόχοι, τα βυτία και τα πραγματικά μέτρα;')){
+    localStorage.removeItem(STORAGE_KEY);
+    OLD_KEYS.forEach(k=>localStorage.removeItem(k));
+    const clearedTanks=structuredClone(defaultTanks).map(t=>({
+      ...t,
+      m:'',
+      order:'',
+      targets:'',
+      fillOrder1:'',
+      fillTarget1:'',
+      fillOrder2:'',
+      fillTarget2:'',
+      tankers:0
+    }));
+    state={production:'6824',startTime:toLocalInput(new Date()),globalTankers:0,tanks:clearedTanks};
+    save();
+    render();
+  }
+};
 qs('quickAddBtn').onclick=()=>{
   const id=displayOrder.find(id=>!quickState.rows.some(r=>r.tankId===id)) || 'Z1';
-  quickState.rows.push({tankId:id,level:String(tankById(id)?.m ?? 0),orders:''});
+  quickState.rows.push({tankId:id,level:String(tankById(id)?.m ?? 0),target:String(tankById(id)?.maxM ?? 0),orders:''});
   saveQuickState(); renderQuick();
 };
 qs('quickCalcBtn').onclick=()=>{ saveQuickState(); calculateQuick(); };
 qs('quickClearBtn').onclick=()=>{
   if(confirm('Να καθαριστούν οι γραμμές και τα αποτελέσματα του γρήγορου υπολογισμού;')){
-    quickState={rows:[{tankId:'Z1',level:'',orders:''}]};
+    quickState={rows:[{tankId:'Z1',level:'',target:'',orders:''}]};
     saveQuickState(); renderQuick();
     qs('quickResults').innerHTML='<div class="quick-empty">Ο γρήγορος υπολογισμός καθαρίστηκε.</div>';
   }
