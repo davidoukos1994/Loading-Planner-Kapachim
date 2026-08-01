@@ -93,7 +93,7 @@ function applyRemoteState(remote){
  const base=defaultState();
  state=migrateDailyState({...base,...remote,dailySchemaVersion:remote.dailySchemaVersion||1,lists:{...base.lists,...(remote.lists||{})},weeklyDone:remote.weeklyDone||{},sequence:remote.sequence||{},workPrograms:remote.workPrograms||{},workProgramDate:remote.workProgramDate||''});
  localStorage.setItem(KEY,JSON.stringify(state));
- state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());state.workProgramDate=state.workProgramDate||iso(new Date());
+ state.weekStart=mondayOfToday();state.dailyDate=state.dailyDate||iso(new Date());state.sequenceDate=state.sequenceDate||iso(new Date());state.workProgramDate=state.workProgramDate||iso(new Date());
  initLists();renderWeekly();renderDaily();renderSalesOrder();renderWorkProgram();bindVisualViewportLayout();
  applyingRemote=false;
  setStatus('Κοινόχρηστο • ενημερώθηκε '+new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'}),'online');
@@ -528,7 +528,21 @@ function bindVisualViewportLayout(){
   resizeTimer=setTimeout(syncVisualViewportLayout,300);
  },{passive:true});
 }
-state.weekStart=state.weekStart||mondayOfToday();state.dailyDate=iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSalesOrder();renderWorkProgram();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
+state.weekStart=mondayOfToday();state.dailyDate=iso(new Date());bind();initLists();renderWeekly();renderDaily();renderSalesOrder();renderWorkProgram();bindVisualViewportLayout();if(localStorage.getItem('loadingPlanner.fitWeek')==='1'){document.getElementById('weeklyTable').classList.add('fit-week');document.getElementById('toggleWeekFit').textContent='↔ Κανονική προβολή'}localStorage.setItem(KEY,JSON.stringify(state));initSharedSync();
+// Κάθε φορά που ανοίγει/επιστρέφει η εφαρμογή, προβάλλεται αυτόματα η πραγματική τρέχουσα εβδομάδα.
+let lastCalendarWeek=state.weekStart;
+function refreshCurrentCalendarWeek(){
+ const current=mondayOfToday();
+ if(current!==lastCalendarWeek){
+  lastCalendarWeek=current;
+  state.weekStart=current;
+  renderWeekly();
+  localStorage.setItem(KEY,JSON.stringify(state));
+ }
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshCurrentCalendarWeek()});
+window.addEventListener('focus',refreshCurrentCalendarWeek);
+setInterval(refreshCurrentCalendarWeek,60000);
 // Αφαιρεί παλιό service worker/cache ώστε το GitHub Pages να φορτώνει πάντα τη νεότερη έκδοση.
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
 if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}

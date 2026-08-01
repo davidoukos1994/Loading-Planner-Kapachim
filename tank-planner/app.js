@@ -125,7 +125,7 @@ function num(v){
 }
 function fmt(n,d=2){ return Number(n).toLocaleString('el-GR',{minimumFractionDigits:d,maximumFractionDigits:d}); }
 function toLocalInput(date){ const z=new Date(date.getTime()-date.getTimezoneOffset()*60000); return z.toISOString().slice(0,16); }
-function dateFmt(date){ return date.toLocaleString('el-GR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function dateFmt(date){ return date.toLocaleString('el-GR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,hourCycle:'h23'}); }
 function dur(hours){ if(!isFinite(hours)||hours<=0) return '0ω 00λ'; const h=Math.floor(hours); const m=Math.round((hours-h)*60); return `${h}ω ${String(m).padStart(2,'0')}λ`; }
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 function load(){
