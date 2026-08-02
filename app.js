@@ -290,6 +290,26 @@ function renderSalesOrder(){
 function defaultShiftForHour(){const h=new Date().getHours();if(h>=7&&h<15)return 'ΠΡΩΙ';if(h>=15&&h<23)return 'ΑΠΟΓΕΥΜΑ';return 'ΒΡΑΔΥ'}
 function blankWorkProgram(){return {shift:defaultShiftForHour(),loadingRows:Array.from({length:4},()=>({company:'',tanker:'',tank:'',done:false})),manualTasks:Array.from({length:3},()=>({text:'',done:false})),analysisResults:{},shiftLog:''}}
 function normalizeWorkProgram(v){const b=blankWorkProgram(),x=v&&typeof v==='object'?v:{};return {shift:WORK_SHIFT_TIMES[x.shift]?x.shift:b.shift,loadingRows:(Array.isArray(x.loadingRows)?x.loadingRows:[]).map(r=>({company:upper(r?.company||''),tanker:upper(r?.tanker||''),tank:upper(r?.tank||''),done:!!r?.done})),manualTasks:(Array.isArray(x.manualTasks)?x.manualTasks:[]).map(r=>({text:String(r?.text||''),done:!!r?.done})),analysisResults:x.analysisResults&&typeof x.analysisResults==='object'?x.analysisResults:{},shiftLog:String(x.shiftLog||'')}}
+function formatGreekNumericDate(value){
+ if(!value)return '';
+ const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ return m?`${m[3]}/${m[2]}/${m[1]}`:'';
+}
+function parseGreekNumericDate(value){
+ const clean=String(value||'').trim().replace(/[.\-]/g,'/');
+ const m=clean.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+ if(!m)return '';
+ const d=Number(m[1]),mo=Number(m[2]),y=Number(m[3]);
+ const dt=new Date(y,mo-1,d);
+ if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return '';
+ return `${String(y).padStart(4,'0')}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function normalizeGreekDateTyping(value){
+ const digits=String(value||'').replace(/\D/g,'').slice(0,8);
+ if(digits.length<=2)return digits;
+ if(digits.length<=4)return digits.slice(0,2)+'/'+digits.slice(2);
+ return digits.slice(0,2)+'/'+digits.slice(2,4)+'/'+digits.slice(4);
+}
 function workProgramKey(){return state.workProgramDate||iso(new Date())}
 function ensureWorkProgram(){state.workProgramDate=state.workProgramDate||iso(new Date());const k=workProgramKey();state.workPrograms=state.workPrograms||{};state.workPrograms[k]=normalizeWorkProgram(state.workPrograms[k]);return state.workPrograms[k]}
 function makeTaskInput(value,placeholder,oninput,listKey=null){const input=document.createElement('input');input.type='text';input.value=value||'';input.placeholder=placeholder;input.autocomplete='off';input.spellcheck=true;input.oninput=()=>{input.value=listKey?upper(input.value):input.value;oninput(input.value);autosave()};return input}
@@ -303,7 +323,7 @@ function analysisSavedValue(program,time,name,field,fieldIndex){
  if(name==='C-201'&&field.key==='ppb')return program.analysisResults[time+'|C-201|value']||'';
  return '';
 }
-function renderWorkProgram(){const dateInput=document.getElementById('workProgramDate');if(!dateInput)return;const program=ensureWorkProgram();dateInput.value=state.workProgramDate;const shift=document.getElementById('workProgramShift');shift.value=program.shift;document.getElementById('analysisShiftLabel').textContent=program.shift+' • '+WORK_SHIFT_TIMES[program.shift].join(' · ');
+function renderWorkProgram(){const dateInput=document.getElementById('workProgramDate');if(!dateInput)return;const program=ensureWorkProgram();dateInput.value=state.workProgramDate;const dateDisplay=document.getElementById('workProgramDateDisplay');if(dateDisplay)dateDisplay.value=formatGreekNumericDate(state.workProgramDate);const shift=document.getElementById('workProgramShift');shift.value=program.shift;document.getElementById('analysisShiftLabel').textContent=program.shift+' • '+WORK_SHIFT_TIMES[program.shift].join(' · ');
  const loading=document.getElementById('loadingTasks');loading.innerHTML='';if(!program.loadingRows.length)program.loadingRows.push({company:'',tanker:'',tank:'',done:false});program.loadingRows.forEach((row,i)=>{const item=document.createElement('div');item.className='task-row loading-task'+(row.done?' task-done':'');const done=document.createElement('input');done.type='checkbox';done.checked=row.done;done.setAttribute('aria-label','Ολοκληρώθηκε');done.onchange=()=>{row.done=done.checked;renderWorkProgram();save()};
  const labelled=(label,node,cls)=>{const wrap=document.createElement('label');wrap.className='loading-field '+cls;const cap=document.createElement('span');cap.textContent=label;wrap.append(cap,node);return wrap};
  const company=makeInput(row.company,v=>row.company=v,'work-company-input','clients',true,{addToClients:true});const companyField=labelled('ΠΕΛΑΤΗΣ / ΕΤΑΙΡΙΑ',company.wrap,'loading-company-field');
@@ -494,7 +514,16 @@ function bind(){bindTabs();bindClipboardButtons();
  document.getElementById('resetSalesOrderDone').onclick=()=>{state.salesOrder=normalizeSalesOrder(state.salesOrder).map(r=>({...r,manualDone:false}));renderSalesOrder();save()};
  document.getElementById('clearWeekly').onclick=()=>{if(confirm('Να καθαριστεί η εβδομάδα;')){delete state.weekly[weekKey()];delete state.weeklyDone[weekKey()];renderWeekly();save()}};document.getElementById('clearDaily').onclick=()=>{if(confirm('Να καθαριστεί το καθημερινό;')){state.daily[dayKey()]=blankDaily();renderDaily();save()}};
  document.getElementById('clearSalesOrder').onclick=()=>{if(confirm('Να καθαριστεί η σειρά πώλησης δεξαμενών;')){state.salesOrder=Array.from({length:8},()=>({tank:'',meters:'',tankers:'',tonsPerTanker:'',manualDone:false}));renderSalesOrder();save()}};
- document.getElementById('workProgramDate').onchange=e=>{state.workProgramDate=e.target.value||iso(new Date());renderWorkProgram();save()};
+ const workDateNative=document.getElementById('workProgramDate');
+ const workDateDisplay=document.getElementById('workProgramDateDisplay');
+ const workDatePickerBtn=document.getElementById('workProgramDatePickerBtn');
+ workDateNative.onchange=e=>{state.workProgramDate=e.target.value||iso(new Date());renderWorkProgram();save()};
+ workDateDisplay.addEventListener('input',e=>{const pos=e.target.selectionStart;e.target.value=normalizeGreekDateTyping(e.target.value);try{e.target.setSelectionRange(pos,pos)}catch{}});
+ const commitWorkDateDisplay=()=>{const parsed=parseGreekNumericDate(workDateDisplay.value);if(parsed){state.workProgramDate=parsed;renderWorkProgram();save()}else{workDateDisplay.value=formatGreekNumericDate(state.workProgramDate)}};
+ workDateDisplay.addEventListener('change',commitWorkDateDisplay);
+ workDateDisplay.addEventListener('blur',commitWorkDateDisplay);
+ workDateDisplay.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commitWorkDateDisplay();workDateDisplay.blur()}});
+ workDatePickerBtn.onclick=()=>{workDateNative.value=state.workProgramDate||iso(new Date());if(typeof workDateNative.showPicker==='function')workDateNative.showPicker();else workDateNative.click()};
  document.getElementById('workProgramShift').onchange=e=>{const p=ensureWorkProgram();p.shift=e.target.value;renderWorkProgram();save()};
  document.getElementById('addLoadingTask').onclick=()=>{ensureWorkProgram().loadingRows.push({company:'',tanker:'',tank:'',done:false});renderWorkProgram();save()};
  document.getElementById('addManualTask').onclick=()=>{ensureWorkProgram().manualTasks.push({text:'',done:false});renderWorkProgram();save()};
