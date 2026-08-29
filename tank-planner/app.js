@@ -186,7 +186,9 @@ function explicitFillPlans(t){
   [1,2].forEach(n=>{
     const order = Number(num(t[`fillOrder${n}`]));
     const targetRaw = String(t[`fillTarget${n}`] ?? '').trim();
-    const target = targetRaw ? clamp(num(targetRaw), 0, maxM) : 0;
+    // Αν έχει δοθεί σειρά αλλά όχι στόχος, θεωρούμε αυτόματα στόχο το MAX της δεξαμενής.
+    // Έτσι αρκεί να βάλεις πραγματικά m + σειρά και το πρόγραμμα βγάζει αποτέλεσμα.
+    const target = targetRaw ? clamp(num(targetRaw), 0, maxM) : maxM;
     if(Number.isFinite(order) && order > 0 && target > 0){
       plans.push({order, targetM: target, fillNo: n, explicit: true});
     }
@@ -309,7 +311,12 @@ function attachEvents(){
 function updateSchedule(){
   const prod=num(qs('production').value); state.production=qs('production').value;
   state.startTime=qs('startTime').value || toLocalInput(new Date());
-  const start = new Date(state.startTime);
+  let start = new Date(state.startTime);
+  if(Number.isNaN(start.getTime())){
+    state.startTime = toLocalInput(new Date());
+    qs('startTime').value = state.startTime;
+    start = new Date(state.startTime);
+  }
   const calcs = state.tanks.map(t=>({...t, calc:tankCalc(t)}));
   const totalPhysical = calcs.reduce((s,t)=>s+t.calc.curT,0);
   qs('totalNow').textContent = `${fmt(totalPhysical,2)} tn`;
@@ -349,19 +356,20 @@ function updateSchedule(){
     const globalExtra = entryIndex === 0 ? globalTankerTons : 0;
     const miss = fillMiss + tankerExtra + globalExtra;
     const h = prod>0 ? miss/(prod/1000) : 0;
-    if(miss > 0.0001){
-      elapsed += h;
-      const end = new Date(start.getTime() + elapsed*3600000);
-      rows.push({
-        id:entry.id, order:entry.order, targetM:entry.targetM, miss, h, end,
-        startM, isRepeat:entry.isRepeat, occurrence:entry.occurrence, fillNo: entry.plan.fillNo,
-        tankerCount: entry.isRepeat ? 0 : entry.calc.tankerCount,
-        tankerT: entry.isRepeat ? 0 : entry.calc.tankerT,
-        globalTankerCount: entryIndex === 0 ? globalTankerCount : 0,
-        globalTankerTons: globalExtra,
-        fillMiss
-      });
-    }
+    if(miss > 0.0001) elapsed += h;
+    const end = new Date(start.getTime() + elapsed*3600000);
+    // Κρατάμε τη γραμμή και όταν η δεξαμενή είναι ήδη στον/πάνω από τον στόχο,
+    // ώστε το πρόγραμμα να μην φαίνεται άδειο και να δείχνει καθαρά ότι ο στόχος έχει καλυφθεί.
+    rows.push({
+      id:entry.id, order:entry.order, targetM:entry.targetM, miss, h, end,
+      startM, isRepeat:entry.isRepeat, occurrence:entry.occurrence, fillNo: entry.plan.fillNo,
+      tankerCount: entry.isRepeat ? 0 : entry.calc.tankerCount,
+      tankerT: entry.isRepeat ? 0 : entry.calc.tankerT,
+      globalTankerCount: entryIndex === 0 ? globalTankerCount : 0,
+      globalTankerTons: globalExtra,
+      fillMiss,
+      alreadyAtTarget: miss <= 0.0001
+    });
   }
   qs('allFullTime').textContent = rows.length ? `${dateFmt(rows[rows.length-1].end)} (${dur(elapsed)})` : 'Όλα στους στόχους / χωρίς σειρά';
   const sch=qs('schedule');
@@ -380,7 +388,8 @@ function updateSchedule(){
       const detailText = details.length
         ? `<small>Δεν σταματάει το γέμισμα: στόχος δεξαμενής ${fmt(r.fillMiss,2)} tn + ${details.join(' + ')} = ${fmt(r.miss,2)} tn παραγωγή συνολικά.</small>`
         : '';
-      return `<div class="schedule-row"><span class="badge">${r.order}</span><span>${r.id} ${r.fillNo ? r.fillNo+'η πλήρωση: ' : ''}${globalText}${tankerText}${fillText}${r.isRepeat ? ' <small>(ξανά από 0)</small>' : ''} — ${dur(r.h)}${detailText}</span><span>${fmt(r.miss,2)} tn</span><span>${dateFmt(r.end)}</span></div>`;
+      const statusText = r.alreadyAtTarget ? ' <b>— στόχος ήδη καλυμμένος</b>' : ` — ${dur(r.h)}`;
+      return `<div class="schedule-row"><span class="badge">${r.order}</span><span>${r.id} ${r.fillNo ? r.fillNo+'η πλήρωση: ' : ''}${globalText}${tankerText}${fillText}${r.isRepeat ? ' <small>(ξανά από 0)</small>' : ''}${statusText}${detailText}</span><span>${fmt(r.miss,2)} tn</span><span>${dateFmt(r.end)}</span></div>`;
     }).join('') : '<p>Βάλε 1η σειρά/στόχο και, αν χρειάζεται, 2η σειρά/στόχο. Παράδειγμα D1: 1η σειρά 1 στόχος 2,0m και 2η σειρά 5 στόχος 6,2m.</p>');
   calculateQuick();
   save();
