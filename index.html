@@ -13,19 +13,34 @@
 </head>
 <body>
 <header class="topbar">
-  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">Kapachim_Calendar v1.1</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
+  <div><h1>Πρόγραμμα Φορτώσεων <small class="version-badge">Kapachim_Calendar v1.3</small></h1><p>Κοινόχρηστη εφαρμογή — οι φωτογραφίες δεν αποθηκεύονται.</p></div>
   <div class="status" id="saveStatus">Αποθηκεύτηκε</div>
 </header>
 <nav class="tabs" aria-label="Κύρια πλοήγηση">
-  <button class="tab active" data-view="weekly">Εβδομαδιαίο</button>
-  <button class="tab" data-view="salesOrder">Πρόγραμμα δεξαμενών υποχλωριώδους νατρίου</button>
+  <button class="tab active" data-view="salesOrder">Πρόγραμμα δεξαμενών υποχλωριώδους νατρίου</button>
+  <button class="tab" data-view="weekly">Εβδομαδιαίο</button>
   <button class="tab" data-view="workProgram">Πρόγραμμα εργασιών</button>
   <button class="tab" data-view="lists">Λίστες / Autocomplete</button>
   <button class="tab" data-view="backup">Αντίγραφο ασφαλείας</button>
   <button class="tab" data-view="settings">Ρυθμίσεις</button>
 </nav>
 <main>
-  <section id="weekly" class="view active">
+  <section id="salesOrder" class="view active">
+    <div class="sheet-title">ΠΡΟΓΡΑΜΜΑ ΔΕΞΑΜΕΝΩΝ ΥΠΟΧΛΩΡΙΩΔΟΥΣ ΝΑΤΡΙΟΥ</div>
+    <p class="hint">Η εφαρμογή δεξαμενών λειτουργεί μέσα σε αυτή την καρτέλα και διατηρεί τα δικά της αποθηκευμένα δεδομένα.</p>
+    <div class="embedded-app-wrap">
+      <iframe class="embedded-tank-app" src="tank-planner/index.html?v=4.3.1" title="Πρόγραμμα δεξαμενών υποχλωριώδους νατρίου" loading="eager"></iframe>
+    </div>
+    <div class="legacy-sales-order" hidden aria-hidden="true">
+      <button id="addSalesOrderRow" type="button">＋ Νέα δεξαμενή</button>
+      <button id="resetSalesOrderDone" type="button">Επαναφορά ολοκληρώσεων</button>
+      <button id="clearSalesOrder" type="button">Καθαρισμός σειράς</button>
+      <div id="salesOrderEmpty" hidden></div>
+      <ol id="salesOrderList"></ol>
+    </div>
+  </section>
+
+  <section id="weekly" class="view">
     <div class="toolbar">
       <label>Εβδομάδα από <input type="date" id="weekStart" /></label>
       <button id="weeklyCameraBtn">📷 Κάμερα</button><input type="file" id="weeklyCamera" accept="image/*" capture="environment" hidden />
@@ -49,20 +64,7 @@
     <div class="sheet-wrap"><table class="excel daily-sheet" id="dailyTable"><thead><tr id="dailyHead"></tr></thead><tbody id="dailyBody"></tbody></table></div>
   </section>
 
-  <section id="salesOrder" class="view">
-    <div class="sheet-title">ΠΡΟΓΡΑΜΜΑ ΔΕΞΑΜΕΝΩΝ ΥΠΟΧΛΩΡΙΩΔΟΥΣ ΝΑΤΡΙΟΥ</div>
-    <p class="hint">Η εφαρμογή δεξαμενών λειτουργεί μέσα σε αυτή την καρτέλα και διατηρεί τα δικά της αποθηκευμένα δεδομένα.</p>
-    <div class="embedded-app-wrap">
-      <iframe class="embedded-tank-app" src="tank-planner/index.html?v=4.3.1" title="Πρόγραμμα δεξαμενών υποχλωριώδους νατρίου" loading="eager"></iframe>
-    </div>
-    <div class="legacy-sales-order" hidden aria-hidden="true">
-      <button id="addSalesOrderRow" type="button">＋ Νέα δεξαμενή</button>
-      <button id="resetSalesOrderDone" type="button">Επαναφορά ολοκληρώσεων</button>
-      <button id="clearSalesOrder" type="button">Καθαρισμός σειράς</button>
-      <div id="salesOrderEmpty" hidden></div>
-      <ol id="salesOrderList"></ol>
-    </div>
-  </section>
+
 
   <section id="workProgram" class="view">
     <div class="toolbar work-program-toolbar">
