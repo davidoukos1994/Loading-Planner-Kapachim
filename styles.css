@@ -487,3 +487,18 @@ body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;o
 .weekly-balance-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}.production-advice{margin-top:8px;border-radius:10px;padding:11px 12px;font-weight:800;background:#eef4f8;color:#1f3b5b;border:1px solid #c8d7e3}.production-advice.ok{background:#eaf7ee;color:#23643a;border-color:#b9dfc5}.production-advice.warn{background:#fff5dc;color:#8a5a00;border-color:#efd28b}.production-advice.danger{background:#fdecec;color:#9c2f2f;border-color:#efbcbc}
 .day-balance-wrap{overflow:auto;margin-top:8px}.day-balance-table{width:100%;border-collapse:collapse;min-width:580px;font-size:.82rem}.day-balance-table th,.day-balance-table td{border:1px solid #d5dde3;padding:7px;text-align:center}.day-balance-table th{background:#1f3b5b;color:#fff}.stock-ok{color:#24703e;font-weight:800}.stock-warn{color:#9a6400;font-weight:800}.stock-danger{color:#a92c2c;font-weight:800}
 @media(max-width:700px){.weekly-production-planner{padding:9px;margin:4px 0 10px}.planner-title-row{align-items:flex-start}.planner-title-row h2{font-size:1rem}.planner-title-row button{font-size:.7rem;padding:.5rem}.production-tank-grid{grid-template-columns:repeat(2,1fr);gap:6px}.production-controls{grid-template-columns:1fr 1fr}.production-controls label:nth-child(2){grid-column:1/-1}.weekly-balance-grid{grid-template-columns:1fr 1fr}.production-kpi strong,.balance-card strong{font-size:.95rem}}
+
+/* Εβδομαδιαίος πίνακας παραγωγής v2.2 */
+.simple-tank-table-wrap{overflow-x:auto;max-width:100%;margin:10px 0 18px}
+.simple-week-table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+.simple-week-table th,.simple-week-table td{border:1px solid #d7e0ea;padding:9px 7px;text-align:center}
+.simple-week-table thead th{background:#1f3b5b;color:white}
+.simple-week-table tbody tr:nth-child(even){background:#f5f8fc}
+.simple-week-table tfoot{background:#eaf2fb;font-weight:700}
+.weekly-compact-input{width:100%;max-width:105px;min-width:62px;box-sizing:border-box;border:1px solid #aebfd2;border-radius:8px;padding:9px 5px;text-align:center;background:#fff8bd;font-size:16px}
+.simple-production-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:14px 0}
+.simple-production-controls label{display:flex;flex-direction:column;gap:7px;font-weight:700}
+.simple-production-controls input{width:100%;min-width:0;box-sizing:border-box;padding:12px;border:1px solid #bdcbdc;border-radius:9px;background:#fff8bd;font-size:16px}
+.now-date-row{display:flex;gap:8px}.now-date-row button{white-space:nowrap;background:#1f3b5b;color:white;border:0;border-radius:9px;padding:0 16px;font-weight:700}
+.d3-toggle{display:block;font-size:11px;font-weight:normal;white-space:nowrap;margin-top:5px}
+.weekly-production-planner h3{margin:18px 0 6px}
