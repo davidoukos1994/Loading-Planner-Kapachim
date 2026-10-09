@@ -184,6 +184,7 @@ function weeklyDayTotal(dayIndex){const w=state.weekly[weekKey()]||blankWeekly()
 function updateWeekTotal(){
  const total=document.getElementById('weekTotal');if(total)total.textContent='ΣΥΝΟΛΟ ΒΥΤΙΩΝ: '+weeklyTotal();
  document.querySelectorAll('#weeklyDays .day-total').forEach(el=>{const day=Number(el.dataset.day);el.textContent='ΣΥΝΟΛΟ: '+weeklyDayTotal(day)});
+ if(typeof wpCalculate==='function')wpCalculate();
 }
 function dateForWeekDay(dayIndex){const d=new Date((state.weekStart||mondayOfToday())+'T12:00:00');d.setDate(d.getDate()+dayIndex);return iso(d)}
 function weeklyClientsForDay(dayIndex){const w=state.weekly[weekKey()]||blankWeekly();const out=[];for(const section of ['hypochlorite','hydrochloric','brine'])for(const row of (w[section]||[])){const name=upper(row?.[dayIndex]||'').trim();if(name)out.push(name)}return out}
@@ -575,3 +576,48 @@ setInterval(refreshCurrentCalendarWeek,60000);
 // Αφαιρεί παλιό service worker/cache ώστε το GitHub Pages να φορτώνει πάντα τη νεότερη έκδοση.
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}
 if('caches' in window){caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}
+
+// ===== Kapachim Calendar v2 — Εβδομαδιαίος υπολογισμός παραγωγής =====
+const WEEK_PRODUCTION_KEY='kapachim.weekProduction.v1';
+const WEEK_TANK_DEFAULTS=[
+ {id:'Z1',maxM:8.65,tnm:11.63},{id:'Z2',maxM:7.50,tnm:13.54},{id:'Z3',maxM:7.50,tnm:13.54},
+ {id:'D1',maxM:6.20,tnm:11.63},{id:'D2',maxM:6.20,tnm:11.63},{id:'D3',maxM:0,tnm:0,enabled:false}
+];
+function wpNum(v){return Number(String(v??'').replace(',','.'))||0}
+function wpFmt(v,d=2){return Number(v||0).toLocaleString('el-GR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function wpLocalDateTime(d=new Date()){const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
+function wpLoad(){try{return JSON.parse(localStorage.getItem(WEEK_PRODUCTION_KEY)||'null')}catch{return null}}
+function wpDefault(){return {kgH:'',start:wpLocalDateTime(),tanks:WEEK_TANK_DEFAULTS.map(t=>({...t,m:'',targetM:t.maxM}))}}
+let weekProduction=wpLoad()||wpDefault();
+function wpNormalize(){
+ weekProduction={...wpDefault(),...weekProduction};
+ weekProduction.tanks=WEEK_TANK_DEFAULTS.map(def=>{const old=(weekProduction.tanks||[]).find(t=>t.id===def.id)||{};return {...def,...old,id:def.id,tnm:def.id==='D3'?(old.tnm??''):def.tnm,maxM:def.id==='D3'?(old.maxM??''):def.maxM,enabled:def.id==='D3'?(old.enabled===true):true,targetM:old.targetM===''?'':(old.targetM??def.maxM)}});
+}
+function wpSave(){localStorage.setItem(WEEK_PRODUCTION_KEY,JSON.stringify(weekProduction))}
+function wpImportTankValues(){
+ try{
+  const raw=JSON.parse(localStorage.getItem('hypo-v8-tankers-targets')||'null');
+  if(raw){if(raw.production!==undefined)weekProduction.kgH=String(raw.production);if(raw.startTime)weekProduction.start=String(raw.startTime).slice(0,16);for(const wt of weekProduction.tanks){const t=(raw.tanks||[]).find(x=>x.id===wt.id);if(t){wt.m=t.m;if(wt.id==='D3'){wt.maxM=wpNum(t.maxM)||wt.maxM;wt.tnm=wpNum(t.tnm)||wt.tnm;}wt.targetM=wpNum(t.maxM)||wt.targetM}}wpSave();wpRender();return true}
+ }catch(e){}
+ return false;
+}
+function wpWeeklyDayCounts(){return Array.from({length:7},(_,i)=>weeklyDayTotal(i))}
+function wpRender(){
+ const grid=document.getElementById('productionTankGrid');if(!grid)return;wpNormalize();grid.innerHTML='';
+ weekProduction.tanks.forEach((t,i)=>{const now=wpNum(t.m)*wpNum(t.tnm),cap=wpNum(t.targetM)*wpNum(t.tnm),free=Math.max(0,cap-now);const card=document.createElement('div');card.className='production-tank-card';card.innerHTML=`<h3>${t.id}</h3>${t.id==='D3'?`<label class="d3-toggle"><input type="checkbox" data-wp-d3-toggle ${t.enabled?'checked':''}> Συμμετοχή στον υπολογισμό (έκτακτα)</label><label>tn/m<input data-wp-i="${i}" data-wp-k="tnm" type="text" inputmode="decimal" value="${t.tnm??''}"></label>`:''}<label>Πραγματικά m<input data-wp-i="${i}" data-wp-k="m" type="text" inputmode="decimal" value="${t.m??''}" placeholder="0,00"></label><label>Μέγιστο / στόχος m<input data-wp-i="${i}" data-wp-k="targetM" type="text" inputmode="decimal" value="${t.targetM??''}"></label><div class="tank-small">${wpFmt(t.tnm)} tn/m<br><b>${wpFmt(now)} tn τώρα</b><br>${wpFmt(free)} tn διαθέσιμα</div>`;grid.appendChild(card)});
+ const kg=document.getElementById('weeklyKgH'),st=document.getElementById('weeklyProductionStart');kg.value=weekProduction.kgH??'';st.value=(weekProduction.start||wpLocalDateTime()).slice(0,16);
+ const d3toggle=grid.querySelector('[data-wp-d3-toggle]');if(d3toggle)d3toggle.onchange=()=>{weekProduction.tanks.find(t=>t.id==='D3').enabled=d3toggle.checked;wpSave();wpCalculate()};
+ grid.querySelectorAll('input[data-wp-i]').forEach(inp=>inp.oninput=()=>{weekProduction.tanks[+inp.dataset.wpI][inp.dataset.wpK]=inp.value;wpSave();wpCalculate()});
+ kg.oninput=()=>{weekProduction.kgH=kg.value;wpSave();wpCalculate()};st.onchange=()=>{weekProduction.start=st.value;wpSave();wpCalculate()};
+ wpCalculate();
+}
+function wpCalculate(){
+ const kgH=wpNum(weekProduction.kgH),prod24=kgH*24/1000,prod7=prod24*7,counts=wpWeeklyDayCounts(),tankers=counts.reduce((a,b)=>a+b,0),sold=tankers*24.5;
+ let current=0,targetCapacity=0;for(const t of weekProduction.tanks){if(t.id==='D3'&&!t.enabled)continue;current+=wpNum(t.m)*wpNum(t.tnm);targetCapacity+=wpNum(t.targetM)*wpNum(t.tnm)}
+ const final=current+prod7-sold, balanceKgH=sold*1000/(7*24);
+ const set=(id,txt)=>{const e=document.getElementById(id);if(e)e.textContent=txt};set('weeklyProduction24h',wpFmt(prod24)+' tn');set('weeklyTankerCount',String(tankers));set('weeklyTankerTons',wpFmt(sold)+' tn');set('weeklyCurrentStock',wpFmt(current)+' tn');set('weeklyProduction7d',wpFmt(prod7)+' tn');set('weeklyFinalStock',wpFmt(final)+' tn');set('weeklyRequiredKgH',Math.round(balanceKgH).toLocaleString('el-GR')+' kg/h');
+ const advice=document.getElementById('weeklyProductionAdvice');if(advice){advice.className='production-advice';if(!kgH){advice.textContent='Δήλωσε τα kg/h για να γίνει ο υπολογισμός παραγωγής.'}else if(final<0){const minKg=Math.max(0,(sold-current)*1000/168);advice.classList.add('danger');advice.textContent=`⚠ Δεν επαρκεί η παραγωγή. Με αυτά τα βυτία λείπουν ${wpFmt(Math.abs(final))} tn. Ελάχιστη μέση παραγωγή για να μη μηδενίσει το απόθεμα: περίπου ${Math.ceil(minKg).toLocaleString('el-GR')} kg/h.`}else if(final>targetCapacity){const maxKg=Math.max(0,(targetCapacity-current+sold)*1000/168);advice.classList.add('warn');advice.textContent=`⚠ Υπάρχει κίνδυνος υπερπλήρωσης. Η εκτίμηση ξεπερνά τον συνολικό στόχο κατά ${wpFmt(final-targetCapacity)} tn. Με τα σημερινά δεδομένα κράτησε μέση παραγωγή έως περίπου ${Math.floor(maxKg).toLocaleString('el-GR')} kg/h.`}else{advice.classList.add('ok');const pct=targetCapacity?final/targetCapacity*100:0;advice.textContent=`✓ Η παραγωγή χωράει στα όρια που δήλωσες. Εκτίμηση τέλους εβδομάδας: ${wpFmt(final)} tn (${wpFmt(pct,0)}% του συνολικού στόχου). Παραγωγή ισορροπίας με τις πωλήσεις: ${Math.round(balanceKgH).toLocaleString('el-GR')} kg/h.`}}
+ const body=document.getElementById('weeklyBalanceBody');if(body){body.innerHTML='';const names=['Δευτέρα','Τρίτη','Τετάρτη','Πέμπτη','Παρασκευή','Σάββατο','Κυριακή'];let stock=current;counts.forEach((n,i)=>{stock+=prod24-n*24.5;let status='OK',cls='stock-ok';if(stock<0){status='ΕΛΛΕΙΨΗ';cls='stock-danger'}else if(stock>targetCapacity){status='ΥΠΕΡΠΛΗΡΩΣΗ';cls='stock-danger'}else if(targetCapacity&&stock>targetCapacity*.9){status='ΥΨΗΛΟ';cls='stock-warn'}const tr=document.createElement('tr');tr.innerHTML=`<td>${names[i]}</td><td>${n}</td><td>${wpFmt(n*24.5)}</td><td>${wpFmt(stock)} tn</td><td class="${cls}">${status}</td>`;body.appendChild(tr)})}
+}
+function wpInit(){wpNormalize();const btn=document.getElementById('loadTankPlannerValues');if(!btn)return;btn.onclick=()=>{if(!wpImportTankValues())alert('Δεν βρέθηκαν ακόμη αποθηκευμένες τιμές στο πρόγραμμα δεξαμενών.');};if(!wpLoad())wpImportTankValues();wpRender();}
+window.addEventListener('DOMContentLoaded',wpInit);
