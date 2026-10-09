@@ -42,8 +42,8 @@
 
   <section id="weekly" class="view">
     <div class="weekly-production-planner" id="weeklyProductionPlanner">
-      <h2>Εβδομαδιαίο πρόγραμμα παραγωγής — πίνακας Excel</h2>
-      <p class="hint">Όπως στο Excel: γράφεις <b>πραγματικά μέτρα</b>, <b>kg/h</b> και <b>βυτία</b>. Όλα τα αποτελέσματα ενημερώνονται αμέσως, χωρίς να χρειάζεται η καρτέλα δεξαμενών.</p>
+      <h2>Εβδομαδιαίο — πίνακας παραγωγής & βυτίων</h2>
+      <p class="hint">Στον ίδιο πίνακα, όπως στο Excel: γράφεις <b>πραγματικά μέτρα</b>, <b>kg/h</b> και <b>βυτία</b>. Όλα τα αποτελέσματα ενημερώνονται αμέσως, χωρίς να χρειάζεται η καρτέλα δεξαμενών.</p>
       <div class="excel-dashboard">
         <div class="excel-sheet-box excel-tanks"><h3>ΔΕΞΑΜΕΝΕΣ</h3><div class="excel-scroll"><table class="excel-grid"><thead><tr><th>Δεξαμενή</th><th>Μέγιστο ύψος (m)</th><th>tn / μέτρο</th><th>Πραγματικά μέτρα (m)</th><th>Ποσότητα (tn)</th><th>Διαθέσιμο (m)</th><th>Διαθέσιμο (tn)</th></tr></thead><tbody id="productionTankGrid"></tbody><tfoot><tr><th colspan="4">ΣΥΝΟΛΑ</th><th id="weeklyTankTotal">0,00</th><th id="weeklyFreeMeters">0,00</th><th id="weeklyFreeTotal">0,00</th></tr></tfoot></table></div></div>
         <div class="excel-sheet-box excel-production"><h3>ΠΑΡΑΓΩΓΗ</h3><div class="excel-rows"><label>Τρέχον kg/h <input id="weeklyKgH" type="text" inputmode="decimal" placeholder="π.χ. 3500"></label><label>Ημερομηνία / ώρα έναρξης <span class="now-date-row"><input id="weeklyProductionStart" type="datetime-local"><button type="button" id="weeklyNowBtn">Τώρα</button></span></label><label>Υπολογισμός έως (ημερομηνία / ώρα) <span class="now-date-row"><input id="weeklyProductionEnd" type="datetime-local"><button type="button" id="weeklyEndNowBtn">Τώρα</button></span></label><div id="weeklyPeriodError" role="status" style="color:#a12626;font-weight:600"></div><div>Διάρκεια υπολογισμού <strong id="weeklyPeriodHours">0 ώρες</strong></div><div>Παραγωγή επιλεγμένου διαστήματος <strong id="weeklyPeriodProduction">0,00 tn</strong></div><div>Παραγωγή μέχρι 08:00 επόμενης ημέρας <strong id="weeklyUntil8Kg">0 kg</strong></div><div>Παραγωγή μέχρι 08:00 (tn) <strong id="weeklyTo8">0 tn</strong></div><div>Παραγωγή ανά 24ωρο (kg) <strong id="weekly24hKg">0 kg</strong></div><div>Παραγωγή ανά 24ωρο (tn) <strong id="weekly24hTn">0 tn</strong></div></div></div>
@@ -158,5 +158,5 @@
   } catch (_) {}
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=6.2.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script src="app.js?v=6.3.0"></script><script src="weekly-production.js?v=6.3.0"></script>
 </body></html>
