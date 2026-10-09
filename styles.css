@@ -520,3 +520,15 @@ body.visual-zoom-out .sheet-wrap{width:100%!important;max-width:100%!important;o
 .excel-production .now-date-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .excel-production .now-date-row button{min-height:44px;cursor:pointer}
 @media(max-width:720px){.excel-dashboard{display:flex!important;flex-direction:column!important}.excel-sheet-box{width:100%}.excel-tanks .excel-grid{min-width:640px}.excel-days .excel-grid{min-width:460px}}
+
+/* v2.7: production first, then tanks, then the other panels */
+.excel-dashboard{display:flex!important;flex-direction:column!important}
+.excel-dashboard>.excel-sheet-box{width:100%;grid-column:auto!important}
+.excel-production{order:0}.excel-tanks{order:1}.excel-days{order:2}.excel-tankers{order:3}.excel-24h{order:4}.excel-summary{order:5}
+.excel-tanks .excel-grid{min-width:1050px}
+.excel-tanks .excel-grid td[id^="wp-"]{font-variant-numeric:tabular-nums}
+.weekly-actions{display:flex;justify-content:flex-end;margin:8px 0}
+.weekly-actions button{background:#a83131;color:white;border:0;border-radius:8px;padding:12px 18px;font-weight:700;cursor:pointer}
+.excel-rows input[type=datetime-local]{width:min(100%,310px);min-height:48px;font-size:17px;color:#102b48}
+.excel-rows .now-date-row{width:100%;align-items:center}
+.excel-rows .now-date-row button{min-height:48px}
